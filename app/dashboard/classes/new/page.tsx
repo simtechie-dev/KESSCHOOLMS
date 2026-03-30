@@ -1,0 +1,156 @@
+'use client'
+
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { School } from '@/lib/types'
+
+export default function NewClassPage() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [schools, setSchools] = useState<School[]>([])
+  const [formData, setFormData] = useState({
+    name: '',
+    code: '',
+    school_id: '',
+    capacity: '',
+  })
+
+  useEffect(() => {
+    fetchSchools()
+  }, [])
+
+  const fetchSchools = async () => {
+    try {
+      const response = await fetch('/api/schools')
+      if (response.ok) {
+        const data = await response.json()
+        setSchools(data)
+      }
+    } catch (err) {
+      console.error('Error fetching schools:', err)
+    }
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+
+    try {
+      const response = await fetch('/api/classes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          capacity: formData.capacity ? parseInt(formData.capacity) : null,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create class')
+      }
+
+      router.push('/dashboard/classes')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div>
+      <h1 className="text-3xl font-bold mb-8 text-gray-800">Add New Class</h1>
+
+      <form onSubmit={handleSubmit} className="card max-w-2xl">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            {error}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="form-group">
+            <label className="form-label">School *</label>
+            <select
+              name="school_id"
+              value={formData.school_id}
+              onChange={handleChange}
+              required
+              className="input-field"
+            >
+              <option value="">Select School</option>
+              {schools.map((school) => (
+                <option key={school.id} value={school.id}>
+                  {school.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Class Name *</label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+              className="input-field"
+              placeholder="e.g., Senior Secondary 1 (SS1)"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Class Code *</label>
+            <input
+              type="text"
+              name="code"
+              value={formData.code}
+              onChange={handleChange}
+              required
+              className="input-field"
+              placeholder="e.g., SS1A"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Capacity</label>
+            <input
+              type="number"
+              name="capacity"
+              value={formData.capacity}
+              onChange={handleChange}
+              className="input-field"
+              placeholder="e.g., 50"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-4 mt-8">
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary disabled:opacity-50"
+          >
+            {loading ? 'Creating...' : 'Create Class'}
+          </button>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="btn-outline"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}

@@ -1,0 +1,203 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useAuth, useUser } from '@clerk/nextjs'
+import { useRouter } from 'next/navigation'
+import { User } from '@/lib/types'
+import StatCard from '@/components/StatCard'
+import LoadingSpinner from '@/components/LoadingSpinner'
+
+interface DashboardStats {
+  totalSchools: number
+  totalStudents: number
+  totalTeachers: number
+  totalAttendanceToday: number
+}
+
+export default function DashboardPage() {
+  const { isLoaded, isSignedIn } = useAuth()
+  const { user: clerkUser } = useUser()
+  const router = useRouter()
+  const [userData, setUserData] = useState<User | null>(null)
+  const [stats, setStats] = useState<DashboardStats>({
+    totalSchools: 0,
+    totalStudents: 0,
+    totalTeachers: 0,
+    totalAttendanceToday: 0,
+  })
+  const [showSetup, setShowSetup] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  if (!isLoaded) return null
+  if (isLoaded && !isSignedIn) {
+    router.push('/sign-in')
+    return null
+  }
+
+  useEffect(() => {
+    if (!isLoaded || !clerkUser) return
+
+    const fetchData = async () => {
+      try {
+        // Sync user first
+        const syncResponse = await fetch('/api/auth/sync-user', {
+          method: 'POST',
+        })
+
+        if (!syncResponse.ok) {
+          throw new Error('Failed to sync user')
+        }
+
+        const user = await syncResponse.json()
+
+        if (!user) {
+          // Show setup message if no user found
+          setShowSetup(true)
+          setLoading(false)
+          return
+        }
+
+        setUserData(user as User)
+
+        // Fetch stats from API route
+        const statsResponse = await fetch('/api/dashboard/stats')
+        if (!statsResponse.ok) {
+          throw new Error('Failed to fetch stats')
+        }
+        const statsData = await statsResponse.json()
+        setStats(statsData)
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [isLoaded, clerkUser])
+
+  if (showSetup) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">Account Setup Required</h1>
+          <p className="text-gray-600 mb-4">
+            Your account is being set up. Please refresh the page or contact support if this persists.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading || !userData) {
+    return <LoadingSpinner />
+  }
+
+  return (
+    <div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-800">
+          Welcome, {userData.full_name}!
+        </h1>
+        <p className="text-gray-600 mt-2">
+          {userData.role === 'state_admin'
+            ? 'State-level dashboard and analytics'
+            : userData.role === 'school_admin'
+            ? 'School management dashboard'
+            : userData.role === 'teacher'
+            ? 'Class and academic management'
+            : 'Student portal'}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {userData.role === 'state_admin' && (
+          <>
+            <StatCard
+              title="Total Schools"
+              value={stats.totalSchools}
+              icon="🏫"
+              color="blue"
+            />
+            <StatCard
+              title="Total Students"
+              value={stats.totalStudents}
+              icon="👨‍🎓"
+              color="green"
+            />
+            <StatCard
+              title="Total Teachers"
+              value={stats.totalTeachers}
+              icon="👨‍🏫"
+              color="purple"
+            />
+          </>
+        )}
+
+        {userData.role === 'school_admin' && (
+          <>
+            <StatCard
+              title="Total Students"
+              value={stats.totalStudents}
+              icon="👨‍🎓"
+              color="blue"
+            />
+            <StatCard
+              title="Total Teachers"
+              value={stats.totalTeachers}
+              icon="👨‍🏫"
+              color="green"
+            />
+            <StatCard
+              title="Attendance Today"
+              value={stats.totalAttendanceToday}
+              icon="✅"
+              color="orange"
+            />
+          </>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="card">
+          <h2 className="text-xl font-bold mb-4 text-gray-800">Quick Actions</h2>
+          <div className="space-y-2">
+            {userData.role === 'school_admin' && (
+              <>
+                <a
+                  href="/dashboard/students/new"
+                  className="block p-3 hover:bg-blue-50 rounded text-blue-600 font-medium"
+                >
+                  ➕ Add New Student
+                </a>
+                <a
+                  href="/dashboard/attendance"
+                  className="block p-3 hover:bg-blue-50 rounded text-blue-600 font-medium"
+                >
+                  ✅ Record Attendance
+                </a>
+                <a
+                  href="/dashboard/results"
+                  className="block p-3 hover:bg-blue-50 rounded text-blue-600 font-medium"
+                >
+                  📊 Enter Grades
+                </a>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="card">
+          <h2 className="text-xl font-bold mb-4 text-gray-800">Recent Activity</h2>
+          <p className="text-gray-600">No recent activity</p>
+        </div>
+      </div>
+    </div>
+  )
+}

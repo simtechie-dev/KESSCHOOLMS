@@ -1,0 +1,84 @@
+import { auth } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
+import Sidebar from '@/components/Sidebar'
+import { supabase } from '@/lib/supabase'
+import { User } from '@/lib/types'
+
+async function getUserData(clerkId: string): Promise<User | null> {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('clerk_id', clerkId)
+    .single()
+
+  if (error || !data) return null
+  return data as User
+}
+
+function getNavItems(role: string) {
+  const baseItems = [
+    { label: 'Dashboard', href: '/dashboard', icon: '📊' },
+    { label: 'Profile', href: '/dashboard/profile', icon: '👤' },
+  ]
+
+  const roleSpecificItems: Record<string, typeof baseItems> = {
+    state_admin: [
+      ...baseItems,
+      { label: 'Schools', href: '/dashboard/schools', icon: '🏫' },
+      { label: 'Analytics', href: '/dashboard/analytics', icon: '📈' },
+      { label: 'Reports', href: '/dashboard/reports', icon: '📑' },
+    ],
+    school_admin: [
+      ...baseItems,
+      { label: 'Students', href: '/dashboard/students', icon: '👨‍🎓' },
+      { label: 'Teachers', href: '/dashboard/teachers', icon: '👨‍🏫' },
+      { label: 'Classes', href: '/dashboard/classes', icon: '📚' },
+      { label: 'Attendance', href: '/dashboard/attendance', icon: '✅' },
+      { label: 'Results', href: '/dashboard/results', icon: '🎯' },
+      { label: 'Reports', href: '/dashboard/reports', icon: '📑' },
+    ],
+    teacher: [
+      ...baseItems,
+      { label: 'My Classes', href: '/dashboard/classes', icon: '📚' },
+      { label: 'Attendance', href: '/dashboard/attendance', icon: '✅' },
+      { label: 'Grades', href: '/dashboard/grades', icon: '🎯' },
+    ],
+    student: [
+      ...baseItems,
+      { label: 'My Grades', href: '/dashboard/grades', icon: '🎯' },
+      { label: 'Attendance', href: '/dashboard/attendance', icon: '✅' },
+      { label: 'Reports', href: '/dashboard/reports', icon: '📑' },
+    ],
+  }
+
+  return roleSpecificItems[role] || baseItems
+}
+
+export default async function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const { userId } = await auth()
+
+  if (!userId) {
+    redirect('/sign-in')
+  }
+
+  const user = await getUserData(userId)
+
+  // Create a default user object if data fetch fails (e.g., Supabase not configured)
+  const userRole = user?.role || 'student'
+  const userDisplay = user?.full_name || 'User'
+
+  const navItems = getNavItems(userRole)
+
+  return (
+    <div className="flex">
+      <Sidebar navItems={navItems} userRole={userRole.replace('_', ' ').toUpperCase()} />
+      <main className="flex-1 md:ml-64 min-h-screen bg-gray-50">
+        <div className="p-4 md:p-8">{children}</div>
+      </main>
+    </div>
+  )
+}

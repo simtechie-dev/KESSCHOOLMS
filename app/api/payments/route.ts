@@ -21,25 +21,38 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url)
-    const classId = searchParams.get('classId')
-    const date = searchParams.get('date')
+    const studentId = searchParams.get('studentId')
+    const term = searchParams.get('term')
+    const year = searchParams.get('year')
+    const status = searchParams.get('status')
 
-    let query = supabase.from('attendance').select('*')
+    let query = supabase
+      .from('payments')
+      .select('*, students(first_name, last_name, registration_number)')
+      .order('payment_date', { ascending: false })
 
-    // If school admin, only return their school attendance
+    // If school admin, only return their school payments
     if (user.role === 'school_admin' && user.school_id) {
       query = query.eq('school_id', user.school_id)
     }
 
-    if (classId) {
-      query = query.eq('class_id', classId)
+    if (studentId) {
+      query = query.eq('student_id', studentId)
     }
 
-    if (date) {
-      query = query.eq('date', date)
+    if (term) {
+      query = query.eq('term', term)
     }
 
-    const { data, error } = await query.order('created_at', { ascending: false })
+    if (year) {
+      query = query.eq('year', year)
+    }
+
+    if (status) {
+      query = query.eq('status', status)
+    }
+
+    const { data, error } = await query
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
@@ -47,7 +60,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error fetching attendance:', error)
+    console.error('Error fetching payments:', error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
@@ -59,40 +72,50 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify user is teacher or school admin
+    // Check if user can create payments
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('*')
       .eq('clerk_id', userId)
       .single()
 
-    if (userError || !user || (user.role !== 'teacher' && user.role !== 'school_admin')) {
+    if (userError || !user || (user.role !== 'school_admin' && user.role !== 'state_admin')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
     const body = await req.json()
-    const { student_id, class_id, date, status } = body
+    const { student_id, amount, payment_date, term, year, payment_method, reference, status } = body
 
-    if (!student_id || !class_id || !date || !status) {
+    if (!student_id || !amount || !payment_date || !term || !year) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    if (!['Present', 'Absent', 'Late', 'Excused'].includes(status)) {
-      return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
+    // Verify student belongs to school admin's school
+    if (user.role === 'school_admin') {
+      const { data: student } = await supabase
+        .from('students')
+        .select('school_id')
+        .eq('id', student_id)
+        .single()
+
+      if (student?.school_id !== user.school_id) {
+        return NextResponse.json({ error: 'You can only record payments for students in your school' }, { status: 403 })
+      }
     }
 
     const { data, error } = await supabase
-      .from('attendance')
-      .upsert(
-        {
-          student_id,
-          class_id,
-          date,
-          status,
-          recorded_by: userId,
-        },
-        { onConflict: 'student_id,class_id,date' }
-      )
+      .from('payments')
+      .insert({
+        student_id,
+        amount,
+        payment_date,
+        term,
+        year,
+        payment_method,
+        reference,
+        status: status || 'Completed',
+        recorded_by: userId,
+      })
       .select()
 
     if (error) {
@@ -101,7 +124,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(data[0], { status: 201 })
   } catch (error) {
-    console.error('Error recording attendance:', error)
+    console.error('Error creating payment:', error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

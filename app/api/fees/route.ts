@@ -21,25 +21,30 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url)
+    const term = searchParams.get('term')
+    const year = searchParams.get('year')
     const classId = searchParams.get('classId')
-    const date = searchParams.get('date')
 
-    let query = supabase.from('attendance').select('*')
+    let query = supabase.from('fee_structure').select('*').order('created_at', { ascending: false })
 
-    // If school admin, only return their school attendance
+    // If school admin, only return their school fees
     if (user.role === 'school_admin' && user.school_id) {
       query = query.eq('school_id', user.school_id)
+    }
+
+    if (term) {
+      query = query.eq('term', term)
+    }
+
+    if (year) {
+      query = query.eq('year', year)
     }
 
     if (classId) {
       query = query.eq('class_id', classId)
     }
 
-    if (date) {
-      query = query.eq('date', date)
-    }
-
-    const { data, error } = await query.order('created_at', { ascending: false })
+    const { data, error } = await query
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
@@ -47,7 +52,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error fetching attendance:', error)
+    console.error('Error fetching fees:', error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
@@ -59,49 +64,52 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify user is teacher or school admin
+    // Check if user can create fees
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('*')
       .eq('clerk_id', userId)
       .single()
 
-    if (userError || !user || (user.role !== 'teacher' && user.role !== 'school_admin')) {
+    if (userError || !user || (user.role !== 'school_admin' && user.role !== 'state_admin')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
     const body = await req.json()
-    const { student_id, class_id, date, status } = body
+    const { school_id, class_id, term, year, tuition_fee, development_fee, other_fees } = body
 
-    if (!student_id || !class_id || !date || !status) {
+    if (!school_id || !class_id || !term || !year) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    if (!['Present', 'Absent', 'Late', 'Excused'].includes(status)) {
-      return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
+    // Verify school access
+    if (user.role === 'school_admin' && user.school_id !== school_id) {
+      return NextResponse.json({ error: 'You can only add fees to your school' }, { status: 403 })
     }
 
     const { data, error } = await supabase
-      .from('attendance')
-      .upsert(
-        {
-          student_id,
-          class_id,
-          date,
-          status,
-          recorded_by: userId,
-        },
-        { onConflict: 'student_id,class_id,date' }
-      )
+      .from('fee_structure')
+      .insert({
+        school_id,
+        class_id,
+        term,
+        year,
+        tuition_fee,
+        development_fee,
+        other_fees,
+      })
       .select()
 
     if (error) {
+      if (error.code === '23505') {
+        return NextResponse.json({ error: 'Fee structure already exists for this class/term/year' }, { status: 400 })
+      }
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
     return NextResponse.json(data[0], { status: 201 })
   } catch (error) {
-    console.error('Error recording attendance:', error)
+    console.error('Error creating fee:', error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

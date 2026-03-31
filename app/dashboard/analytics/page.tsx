@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
-import { supabase } from '@/lib/supabase'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import StatCard from '@/components/StatCard'
 import {
@@ -43,33 +42,24 @@ export default function AnalyticsPage() {
 
     const fetchAnalytics = async () => {
       try {
-        // Check if user is state admin
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('role')
-          .eq('clerk_id', clerkUser.id)
-          .single()
+        // Fetch statistics from API routes
+        const [
+          schoolsResponse,
+          studentsResponse,
+          teachersResponse,
+        ] = await Promise.all([
+          fetch('/api/schools'),
+          fetch('/api/students'),
+          fetch('/api/teachers'),
+        ])
 
-        if (userError || userData?.role !== 'state_admin') {
-          setError('Only state admins can access analytics')
-          setLoading(false)
-          return
+        if (!schoolsResponse.ok || !studentsResponse.ok || !teachersResponse.ok) {
+          throw new Error('Failed to fetch data')
         }
 
-        // Fetch statistics
-        const [
-          { count: schoolCount },
-          { count: studentCount },
-          { count: teacherCount },
-          { data: schoolsData },
-          { data: studentsData },
-        ] = await Promise.all([
-          supabase.from('schools').select('*', { count: 'exact' }),
-          supabase.from('students').select('*', { count: 'exact' }),
-          supabase.from('teachers').select('*', { count: 'exact' }),
-          supabase.from('schools').select('id, name, lga'),
-          supabase.from('students').select('gender'),
-        ])
+        const schoolsData = await schoolsResponse.json()
+        const studentsData = await studentsResponse.json()
+        const teachersData = await teachersResponse.json()
 
         // Calculate LGA distribution
         const lgaCount = (schoolsData || []).reduce((acc: any, school: any) => {
@@ -101,9 +91,9 @@ export default function AnalyticsPage() {
         ]
 
         setData({
-          totalSchools: schoolCount || 0,
-          totalStudents: studentCount || 0,
-          totalTeachers: teacherCount || 0,
+          totalSchools: schoolsData?.length || 0,
+          totalStudents: studentsData?.length || 0,
+          totalTeachers: teachersData?.length || 0,
           attendanceRate: 85,
           passRate: 72,
           schoolsByLGA: lgaCount,

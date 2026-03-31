@@ -9,12 +9,26 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Get user to check role and school
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('clerk_id', userId)
+      .single()
+
+    if (userError || !user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
     const { searchParams } = new URL(req.url)
     const schoolId = searchParams.get('schoolId')
 
     let query = supabase.from('teachers').select('*').order('employee_id')
 
-    if (schoolId) {
+    // If school admin, only return their school teachers
+    if (user.role === 'school_admin' && user.school_id) {
+      query = query.eq('school_id', user.school_id)
+    } else if (schoolId) {
       query = query.eq('school_id', schoolId)
     }
 

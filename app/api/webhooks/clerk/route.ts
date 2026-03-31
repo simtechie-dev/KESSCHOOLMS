@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supbaseAdmin } from '@/lib/supabase'
+import { getSupabaseAdminClient } from '@/lib/supabase'
 import { Webhook } from 'svix'
 
 const webhookSecret = process.env.CLERK_WEBHOOK_SECRET
@@ -34,11 +34,12 @@ export async function POST(req: NextRequest) {
     const { id, email_addresses, first_name, last_name } = evt.data
 
     try {
-      const { error } = await supbaseAdmin.from('users').insert({
+      const supabase = getSupabaseAdminClient()
+      const { error } = await supabase.from('users').insert({
         clerk_id: id,
         email: email_addresses[0].email_address,
         full_name: `${first_name || ''} ${last_name || ''}`.trim(),
-        role: 'student', // Default role
+        role: 'school_admin', // Default role
       })
 
       if (error) {

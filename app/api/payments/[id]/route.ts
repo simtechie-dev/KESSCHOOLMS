@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { studentId: string } }
+  { params }: { params: { id: string } }  // ← changed from studentId to id
 ) {
   try {
     const { userId } = await auth()
@@ -12,7 +12,6 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user to check role and school
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('*')
@@ -23,9 +22,8 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const { studentId } = params
+    const studentId = params.id  // ← changed from params.studentId to params.id
 
-    // Verify student belongs to school admin's school
     if (user.role === 'school_admin') {
       const { data: student } = await supabase
         .from('students')

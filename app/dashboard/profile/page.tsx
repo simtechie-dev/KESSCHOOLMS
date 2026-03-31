@@ -1,19 +1,23 @@
 'use client'
 
-import { useUser } from '@clerk/nextjs'
+import { useAuth } from '@clerk/nextjs'
 import { useEffect, useState } from 'react'
+import { redirect } from 'next/navigation'
 import { User, School } from '@/lib/types'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { getRoleLabel } from '@/lib/utils'
 
 export default function ProfilePage() {
-  const { user: clerkUser, isLoaded } = useUser()
+  const { isLoaded, isSignedIn, userId } = useAuth()
+  if (!isLoaded) return null
+  if (!isSignedIn) redirect('/sign-in')
+
   const [userData, setUserData] = useState<User | null>(null)
   const [school, setSchool] = useState<School | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!isLoaded || !clerkUser) return
+    if (!isLoaded || !userId) return
 
     const fetchData = async () => {
       try {
@@ -39,9 +43,11 @@ export default function ProfilePage() {
     }
 
     fetchData()
-  }, [isLoaded, clerkUser])
+  }, [isLoaded, userId])
 
-  if (loading || !userData) return <LoadingSpinner />
+  if (loading) return <LoadingSpinner />
+
+  if (!userData) return <div>No profile data found.</div>
 
   return (
     <div>

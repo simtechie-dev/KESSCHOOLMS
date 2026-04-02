@@ -27,6 +27,7 @@ export default function DashboardPage() {
   })
   const [showSetup, setShowSetup] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   if (!isLoaded) return null
   if (isLoaded && !isSignedIn) {
@@ -37,6 +38,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!isLoaded || !clerkUser) return
 
+    setError(null) // Clear any previous errors when fetching starts
     const fetchData = async () => {
       try {
         // Sync user first
@@ -67,7 +69,8 @@ export default function DashboardPage() {
         const statsData = await statsResponse.json()
         setStats(statsData)
       } catch (error) {
-        console.error('Error fetching dashboard data:', error)
+        console.error('Error fetching dashboard data:', error) // Log the error for debugging
+        setError('Failed to load dashboard data. Please try again.') // Set a user-friendly error message
       } finally {
         setLoading(false)
       }
@@ -95,8 +98,30 @@ export default function DashboardPage() {
     )
   }
 
-  if (loading || !userData) {
+  if (loading) {
     return <LoadingSpinner />
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center text-red-600">
+          <h1 className="text-2xl font-bold mb-4">Error Loading Dashboard</h1>
+          <p className="mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()} // Simple retry by reloading the page
+            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!userData) {
+    // This case should ideally be covered by error or showSetup, but as a fallback
+    return <div>No user data found after loading. This should not happen.</div>
   }
 
   return (

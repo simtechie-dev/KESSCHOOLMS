@@ -211,6 +211,8 @@ ALTER TABLE students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE teachers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE classes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subjects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE class_subjects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE enrollments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE results ENABLE ROW LEVEL SECURITY;
 
@@ -224,5 +226,37 @@ CREATE POLICY "schools_state_admin" ON schools
 CREATE POLICY "students_school_access" ON students
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM users WHERE users.clerk_id = auth.jwt() ->> 'sub' AND users.school_id = students.school_id)
+    OR EXISTS (SELECT 1 FROM users WHERE users.clerk_id = auth.jwt() ->> 'sub' AND users.role = 'state_admin')
+  );
+
+-- RLS Policy for teachers - School admins see only their school teachers
+CREATE POLICY "teachers_school_access" ON teachers
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM users WHERE users.clerk_id = auth.jwt() ->> 'sub' AND users.school_id = teachers.school_id)
+    OR EXISTS (SELECT 1 FROM users WHERE users.clerk_id = auth.jwt() ->> 'sub' AND users.role = 'state_admin')
+  );
+
+-- RLS Policy for classes - School admins see only their school classes
+CREATE POLICY "classes_school_access" ON classes
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM users WHERE users.clerk_id = auth.jwt() ->> 'sub' AND users.school_id = classes.school_id)
+    OR EXISTS (SELECT 1 FROM users WHERE users.clerk_id = auth.jwt() ->> 'sub' AND users.role = 'state_admin')
+  );
+
+-- RLS Policy for attendance - School admins see only their school's attendance
+CREATE POLICY "attendance_school_access" ON attendance
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM users
+      WHERE users.clerk_id = auth.jwt() ->> 'sub'
+      AND users.school_id = (SELECT school_id FROM classes WHERE id = attendance.class_id)
+    )
+    OR EXISTS (SELECT 1 FROM users WHERE users.clerk_id = auth.jwt() ->> 'sub' AND users.role = 'state_admin')
+  );
+
+-- RLS Policy for results - School admins see only their school's results
+CREATE POLICY "results_school_access" ON results
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM users WHERE users.clerk_id = auth.jwt() ->> 'sub' AND users.school_id = (SELECT school_id FROM students WHERE id = results.student_id))
     OR EXISTS (SELECT 1 FROM users WHERE users.clerk_id = auth.jwt() ->> 'sub' AND users.role = 'state_admin')
   );

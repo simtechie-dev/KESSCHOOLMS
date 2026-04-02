@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Initialize Supabase client with admin privileges (bypasses RLS)
     const supabase = getSupabaseAdminClient()
 
     // Get user data to determine role and school_id
@@ -27,7 +28,8 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (userError || !user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      console.error('API Error: User profile not found or database error:', userError)
+      return NextResponse.json({ error: 'User profile not found in database or insufficient permissions.' }, { status: 403 })
     }
 
     let stats: DashboardStats
@@ -47,7 +49,7 @@ export async function GET(request: NextRequest) {
         .select('*', { count: 'exact' })
 
       if (schoolError || studentError || teacherError) {
-        console.error('Error fetching stats:', { schoolError, studentError, teacherError })
+        console.error('API Error: Error fetching state admin stats:', { schoolError, studentError, teacherError })
         return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
       }
 
@@ -74,9 +76,10 @@ export async function GET(request: NextRequest) {
         .from('attendance')
         .select('*', { count: 'exact' })
         .eq('date', today)
+        .eq('school_id', user.school_id) // BUG FIX: Filter attendance by school_id
 
       if (studentError || teacherError || attendanceError) {
-        console.error('Error fetching school stats:', { studentError, teacherError, attendanceError })
+        console.error('API Error: Error fetching school admin stats:', { studentError, teacherError, attendanceError })
         return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
       }
 
@@ -87,12 +90,13 @@ export async function GET(request: NextRequest) {
         totalAttendanceToday: attendanceCount || 0,
       }
     } else {
-      return NextResponse.json({ error: 'Invalid user role or missing school_id' }, { status: 403 })
+      console.warn('API Warning: User role not recognized or missing school_id for school_admin:', user)
+      return NextResponse.json({ error: 'Forbidden: Insufficient permissions for dashboard statistics.' }, { status: 403 })
     }
 
     return NextResponse.json(stats)
   } catch (error) {
-    console.error('Dashboard stats API error:', error)
+    console.error('Dashboard stats API unexpected error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

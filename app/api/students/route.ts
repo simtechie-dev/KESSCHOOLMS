@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { supabase } from '@/lib/supabase'
+import { getSupabaseAdminClient } from '@/lib/supabase'
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,7 +9,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user to check role and school
+    const supabase = getSupabaseAdminClient()
+
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('*')
@@ -28,11 +29,10 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from('students')
-      .select('id, registration_number, first_name, last_name, gender, parent_phone, school_id, class_id, classes(name)')
+      .select('id, registration_number, first_name, last_name, gender, parent_phone, school_id')
       .order('last_name')
       .range(start, end)
 
-    // If school admin, only return their school students
     if (user.role === 'school_admin' && user.school_id) {
       query = query.eq('school_id', user.school_id)
     }
@@ -56,15 +56,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user can create students
+    const supabase = getSupabaseAdminClient()
+
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('*')
       .eq('clerk_id', userId)
       .single()
 
-    if (userError || !user || (user.role !== 'school_admin' && user.role !== 'state_admin')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    if (userError || !user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     const body = await req.json()
@@ -83,10 +84,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Verify school access
-    if (user.role === 'school_admin' && user.school_id !== school_id) {
-      return NextResponse.json({ error: 'You can only add students to your school' }, { status: 403 })
-    }
+    const finalSchoolId = user.role === 'school_admin' ? user.school_id : school_id
 
     const { data, error } = await supabase
       .from('students')
@@ -96,7 +94,7 @@ export async function POST(req: NextRequest) {
         last_name,
         gender,
         date_of_birth,
-        school_id,
+        school_id: finalSchoolId,
         parent_phone,
         parent_email,
       })

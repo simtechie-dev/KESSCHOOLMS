@@ -2,101 +2,79 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { getSupabaseAdminClient } from '@/lib/supabase'
 
-interface DashboardStats {
-  totalSchools: number
-  totalStudents: number
-  totalTeachers: number
-  totalAttendanceToday: number
-}
-
-export async function GET(request: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
     const { userId } = await auth()
-
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Initialize Supabase client with admin privileges (bypasses RLS)
     const supabase = getSupabaseAdminClient()
 
-    // Get user data to determine role and school_id
-    const { data: user, error: userError } = await supabase
+    const { data: user } = await supabase
       .from('users')
-      .select('role, school_id')
+      .select('*')
       .eq('clerk_id', userId)
       .single()
 
-    if (userError || !user) {
-      console.error('API Error: User profile not found or database error:', userError)
-      return NextResponse.json({ error: 'User profile not found in database or insufficient permissions.' }, { status: 403 })
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    let stats: DashboardStats
-
-    if (user.role === 'state_admin') {
-      // State admin sees all schools
-      const { count: schoolCount, error: schoolError } = await supabase
-        .from('schools')
-        .select('*', { count: 'exact' })
-
-      const { count: studentCount, error: studentError } = await supabase
+    if (user.role === 'school_admin') {
+      const { count: totalStudents } = await supabase
         .from('students')
-        .select('*', { count: 'exact' })
-
-      const { count: teacherCount, error: teacherError } = await supabase
-        .from('teachers')
-        .select('*', { count: 'exact' })
-
-      if (schoolError || studentError || teacherError) {
-        console.error('API Error: Error fetching state admin stats:', { schoolError, studentError, teacherError })
-        return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
-      }
-
-      stats = {
-        totalSchools: schoolCount || 0,
-        totalStudents: studentCount || 0,
-        totalTeachers: teacherCount || 0,
-        totalAttendanceToday: 0,
-      }
-    } else if (user.role === 'school_admin' && user.school_id) {
-      // School admin sees only their school data
-      const { count: studentCount, error: studentError } = await supabase
-        .from('students')
-        .select('*', { count: 'exact' })
+        .select('*', { count: 'exact', head: true })
         .eq('school_id', user.school_id)
 
-      const { count: teacherCount, error: teacherError } = await supabase
+      const { count: totalTeachers } = await supabase
         .from('teachers')
-        .select('*', { count: 'exact' })
+        .select('*', { count: 'exact', head: true })
         .eq('school_id', user.school_id)
 
       const today = new Date().toISOString().split('T')[0]
-      const { count: attendanceCount, error: attendanceError } = await supabase
+      const { count: todayAttendance } = await supabase
         .from('attendance')
-        .select('*', { count: 'exact' })
+        .select('id, students!inner(school_id)', { count: 'exact', head: true })
+        .eq('students.school_id', user.school_id)
         .eq('date', today)
-        .eq('school_id', user.school_id) // BUG FIX: Filter attendance by school_id
+        .eq('status', 'present')
 
-      if (studentError || teacherError || attendanceError) {
-        console.error('API Error: Error fetching school admin stats:', { studentError, teacherError, attendanceError })
-        return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
-      }
-
-      stats = {
+      return NextResponse.json({
+        totalStudents: totalStudents || 0,
+        totalTeachers: totalTeachers || 0,
+        todayAttendance: todayAttendance || 0,
         totalSchools: 1,
-        totalStudents: studentCount || 0,
-        totalTeachers: teacherCount || 0,
-        totalAttendanceToday: attendanceCount || 0,
-      }
-    } else {
-      console.warn('API Warning: User role not recognized or missing school_id for school_admin:', user)
-      return NextResponse.json({ error: 'Forbidden: Insufficient permissions for dashboard statistics.' }, { status: 403 })
+        role: user.role,
+      })
     }
 
-    return NextResponse.json(stats)
+    if (user.role === 'state_admin') {
+      const { count: totalSchools } = await supabase
+        .from('schools')
+        .select('*', { count: 'exact', head: true })
+
+      const { count: totalStudents } = await supabase
+        .from('students')
+        .select('*', { count: 'exact', head: true })
+
+      const { count: totalTeachers } = await supabase
+        .from('teachers')
+        .select('*', { count: 'exact', head: true })
+
+      return NextResponse.json({
+        totalSchools: totalSchools || 0,
+        totalStudents: totalStudents || 0,
+        totalTeachers: totalTeachers || 0,
+        todayAttendance: 0,
+        role: user.role,
+      })
+    }
+
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
   } catch (error) {
-    console.error('Dashboard stats API unexpected error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Dashboard stats error:', error)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

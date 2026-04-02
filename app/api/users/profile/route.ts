@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { supabase } from '@/lib/supabase'
+import { getSupabaseAdminClient } from '@/lib/supabase'
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,9 +9,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const supabase = getSupabaseAdminClient()
+
     const { data, error } = await supabase
       .from('users')
-      .select('*')
+      .select(`
+        *,
+        schools!users_school_id_fkey (name)
+      `)
       .eq('clerk_id', userId)
       .single()
 

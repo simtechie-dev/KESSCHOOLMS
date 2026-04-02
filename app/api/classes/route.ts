@@ -9,7 +9,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user to check role and school
     const supabase = getSupabaseAdminClient()
     const { data: user, error: userError } = await supabase
       .from('users')
@@ -23,13 +22,11 @@ export async function GET(req: NextRequest) {
 
     let query = supabase.from('classes').select('*').order('name')
 
-    // If school admin, only return their school classes
     if (user.role === 'school_admin' && user.school_id) {
       query = query.eq('school_id', user.school_id)
     }
 
     const { data, error } = await query
-
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
@@ -49,43 +46,38 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = getSupabaseAdminClient()
-    // Check if user can create classes
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('*')
       .eq('clerk_id', userId)
       .single()
 
-    if (userError || !user || (user.role !== 'school_admin' && user.role !== 'state_admin')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    if (userError || !user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     const body = await req.json()
-    const { name, code, school_id, form_teacher_id, capacity } = body
+    const { name, level, code } = body
 
-    if (!name || !code || !school_id) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    if (!name) {
+      return NextResponse.json({ error: 'Class name is required' }, { status: 400 })
     }
 
-    // Verify school access
-    if (user.role === 'school_admin' && user.school_id !== school_id) {
-      return NextResponse.json({ error: 'You can only add classes to your school' }, { status: 403 })
-    }
+    // Always use the logged-in user's school_id
+    const school_id = user.role === 'state_admin' ? body.school_id : user.school_id
 
     const { data, error } = await supabase
       .from('classes')
-      .insert({
-        name,
-        code,
-        school_id,
-        form_teacher_id,
-        capacity,
-      })
+      .insert({ 
+  name, 
+  code: code || name.replace(/\s+/g, '').toUpperCase().slice(0, 6),
+  school_id 
+})
       .select()
 
     if (error) {
       if (error.code === '23505') {
-        return NextResponse.json({ error: 'Class code already exists in this school' }, { status: 400 })
+        return NextResponse.json({ error: 'Class already exists in this school' }, { status: 400 })
       }
       return NextResponse.json({ error: error.message }, { status: 500 })
     }

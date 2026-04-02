@@ -1,9 +1,11 @@
-# KSSMS Stats API Fix - TODO
+# KSSMS Role Fix & Dashboard Pages - TODO
 
-## Plan Steps:
-1. [✅] Create TODO.md 
-2. [✅] Edit app/api/dashboard/stats/route.ts with fixes
-3. [✅] Test endpoint
-4. [✅] Complete task
-
+## Steps:
+1. [✅] Create TODO.md
+2. [✅] Read layout.tsx & Sidebar.tsx
+3. [✅] Edit layout.tsx for server-side role fetch
+4. [✅] Sidebar menus already correct
+5. [✅] Sidebar tested (dev running)
+6. [✅] APIs checked: students OK, classes/fees/attendance use client supabase - fix to admin
+7. [ ] Complete
 

@@ -1,10 +1,11 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
-import { supabase } from '@/lib/supabase'
+import { getSupabaseAdminClient } from '@/lib/supabase'
 import { User } from '@/lib/types'
 
 async function getUserData(clerkId: string): Promise<User | null> {
+  const supabase = getSupabaseAdminClient()
   const { data, error } = await supabase
     .from('users')
     .select('*')
@@ -67,15 +68,22 @@ export default async function DashboardLayout({
 
   const user = await getUserData(userId)
 
-  // Create a default user object if data fetch fails (e.g., Supabase not configured)
+  const roleLabels: Record<string, string> = {
+    school_admin: 'SCHOOL ADMIN',
+    state_admin: 'STATE ADMIN',
+    teacher: 'TEACHER',
+    student: 'STUDENT',
+  }
+
   const userRole = user?.role || 'student'
   const userDisplay = user?.full_name || 'User'
+  const displayRole = roleLabels[userRole] || userRole.replace('_', ' ').toUpperCase()
 
   const navItems = getNavItems(userRole)
 
   return (
     <div className="flex">
-      <Sidebar navItems={navItems} userRole={userRole.replace('_', ' ').toUpperCase()} />
+      <Sidebar navItems={navItems} userRole={displayRole} />
       <main className="flex-1 md:ml-64 min-h-screen bg-gray-50">
         <div className="p-4 md:p-8">{children}</div>
       </main>

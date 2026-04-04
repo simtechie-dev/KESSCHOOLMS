@@ -1,217 +1,306 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Attendance, Class, Student } from '@/lib/types'
 import LoadingSpinner from '@/components/LoadingSpinner'
-import { formatDate, getAttendanceColor } from '@/lib/utils'
-import { Save } from 'lucide-react'
+import { ArrowLeft, Calendar, CheckCircle, XCircle, Clock, HelpCircle, Send } from 'lucide-react'
 
-interface AttendanceRecord {
+interface StudentAttendance {
   student_id: string
-  status: 'Present' | 'Absent' | 'Late' | 'Excused'
+  first_name: string
+  last_name: string
+  registration_number: string
+  status?: string
 }
 
 export default function AttendancePage() {
-  const [classes, setClasses] = useState<Class[]>([])
+  const [classes, setClasses] = useState<any[]>([])
+  const [terms, setTerms] = useState<any[]>([])
+  const [students, setStudents] = useState<StudentAttendance[]>([])
+  const [attendance, setAttendance] = useState<Record<string, string>>({})
   const [selectedClass, setSelectedClass] = useState('')
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
-  const [students, setStudents] = useState<Student[]>([])
-  const [attendance, setAttendance] = useState<Record<string, Attendance | null>>({})
+  const [selectedTerm, setSelectedTerm] = useState('')
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
 
   useEffect(() => {
     fetchClasses()
+    fetchTerms()
   }, [])
 
   useEffect(() => {
-    if (selectedClass) {
-      fetchClassStudents()
-      fetchAttendance()
+    if (selectedClass && selectedTerm) {
+      fetchStudents()
     }
-  }, [selectedClass, selectedDate])
+  }, [selectedClass, selectedTerm, date])
 
   const fetchClasses = async () => {
     try {
-      setLoading(true)
       const response = await fetch('/api/classes')
       if (response.ok) {
         const data = await response.json()
         setClasses(data)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error fetching classes')
+      console.error('Error fetching classes:', err)
+    }
+  }
+
+  const fetchTerms = async () => {
+    try {
+      const response = await fetch('/api/terms')
+      if (response.ok) {
+        const data = await response.json()
+        setTerms(data)
+      }
+    } catch (err) {
+      console.error('Error fetching terms:', err)
+    }
+  }
+
+  const fetchStudents = async () => {
+    if (!selectedClass) return
+    try {
+      setLoading(true)
+      const params = new URLSearchParams({
+        classId: selectedClass,
+        date,
+        termId: selectedTerm
+      })
+      const response = await fetch(`/api/attendance?${params}`)
+      if (response.ok) {
+        const data = await response.json()
+        setStudents(data)
+        // Initialize attendance state
+        const attendanceObj: Record<string, string> = {}
+        data.forEach((item: StudentAttendance) => {
+          attendanceObj[item.student_id] = item.status || 'Absent'
+        })
+        setAttendance(attendanceObj)
+      } else {
+        setError('Failed to load students')
+      }
+    } catch (err) {
+      console.error('Error fetching students:', err)
+      setError('Failed to load students')
     } finally {
       setLoading(false)
     }
   }
 
-  const fetchClassStudents = async () => {
-    try {
-      const response = await fetch(`/api/classes/${selectedClass}/students`)
-      if (response.ok) {
-        const data = await response.json()
-        setStudents(data)
-        // Initialize attendance records
-        const records: Record<string, Attendance | null> = {}
-        data.forEach((student: Student) => {
-          records[student.id] = null
-        })
-        setAttendance(records)
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error fetching students')
-    }
-  }
-
-  const fetchAttendance = async () => {
-    try {
-      const response = await fetch(
-        `/api/attendance?classId=${selectedClass}&date=${selectedDate}`
-      )
-      if (response.ok) {
-        const data = await response.json()
-        const records: Record<string, Attendance> = {}
-        data.forEach((record: Attendance) => {
-          records[record.student_id] = record
-        })
-        setAttendance(records)
-      }
-    } catch (err) {
-      console.error('Error fetching attendance:', err)
-    }
-  }
-
   const handleStatusChange = (studentId: string, status: string) => {
-    setAttendance((prev) => ({
+    setAttendance(prev => ({
       ...prev,
-      [studentId]: {
-        ...(prev[studentId] || {}),
-        student_id: studentId,
-        class_id: selectedClass,
-        date: selectedDate,
-        status: status as any,
-      } as Attendance,
+      [studentId]: status
     }))
   }
 
   const handleSave = async () => {
     setSaving(true)
     setError('')
-
     try {
-      const recordsToSave = Object.values(attendance).filter((record) => record !== null)
+      const attendanceData = Object.entries(attendance).map(([studentId, status]) => ({
+        student_id: studentId,
+        class_id: selectedClass,
+        date,
+        status
+      }))
 
-      const promises = recordsToSave.map((record) =>
-        fetch('/api/attendance', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(record),
-        })
-      )
+      const response = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(attendanceData)
+      })
 
-      await Promise.all(promises)
-      alert('Attendance saved successfully!')
+      if (response.ok) {
+        setMessage('Attendance saved successfully!')
+        setTimeout(() => setMessage(''), 3000)
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to save attendance')
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error saving attendance')
+      setError('Network error. Please try again.')
     } finally {
       setSaving(false)
     }
   }
 
-  if (loading) return <LoadingSpinner />
+  const statusColor = (status: string) => {
+    const colors = {
+      'Present': 'bg-success text-success-content',
+      'Absent': 'bg-error text-error-content',
+      'Late': 'bg-warning text-warning-content',
+      'Excused': 'bg-info text-info-content'
+    }
+    return colors[status] || 'bg-gray-200 text-gray-800'
+  }
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-8 text-gray-800">Attendance Tracking</h1>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-800 mb-4">Take Attendance</h1>
+        <p className="text-gray-600">Record attendance for your class</p>
+      </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-          {error}
-        </div>
-      )}
-
-      <div className="card mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div className="form-group">
-            <label className="form-label">Select Class *</label>
-            <select
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-              className="input-field"
-            >
-              <option value="">-- Select Class --</option>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="form-control">
+          <label className="label">
+            <span className="label-text">Class</span>
+          </label>
+          <select 
+            value={selectedClass} 
+            onChange={(e) => setSelectedClass(e.target.value)}
+            className="select select-bordered w-full"
+          >
+            <option value="">Select Class</option>
               {classes.map((cls) => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.name}
-                </option>
+                <option key={cls.id} value={cls.id}>{cls.name} ({cls.code})</option>
               ))}
-            </select>
-          </div>
+          </select>
+        </div>
 
-          <div className="form-group">
-            <label className="form-label">Date *</label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="input-field"
+        <div className="form-control">
+          <label className="label">
+            <span className="label-text">Term</span>
+          </label>
+          <select 
+            value={selectedTerm} 
+            onChange={(e) => setSelectedTerm(e.target.value)}
+            className="select select-bordered w-full"
+          >
+            <option value="">Select Term</option>
+            {terms.map((term) => (
+              <option key={term.id} value={term.id}>{term.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="form-control">
+          <label className="label">
+            <span className="label-text">Date</span>
+          </label>
+          <div className="relative">
+            <input 
+              type="date" 
+              value={date} 
+              onChange={(e) => setDate(e.target.value)}
+              className="input input-bordered w-full pr-10"
             />
+            <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           </div>
         </div>
       </div>
 
-      {selectedClass && students.length > 0 && (
-        <>
-          <div className="table-container mb-6">
-            <table className="w-full">
-              <thead className="bg-gray-100">
+      {error && (
+        <div className="alert alert-error mb-6">
+          <HelpCircle size={20} />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {message && (
+        <div className="alert alert-success mb-6">
+          <CheckCircle size={20} />
+          <span>{message}</span>
+        </div>
+      )}
+
+      {selectedClass && students.length === 0 && !loading && (
+        <div className="alert alert-info mb-6">
+          <Calendar size={20} />
+          <span>No students found for selected class or no enrollment data.</span>
+        </div>
+      )}
+
+      {students.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border mb-8">
+          <div className="p-6 border-b">
+            <h2 className="text-xl font-bold text-gray-800">
+              {students.length} students • {date}
+            </h2>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="table-zebra w-full">
+              <thead>
                 <tr>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-700">Student Name</th>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-700">Registration #</th>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-700">Status</th>
+                  <th>Student</th>
+                  <th>Registration</th>
+                  <th>Status</th>
+                  <th>Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
-                {students.map((student) => (
-                  <tr key={student.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-800">
-                      {student.first_name} {student.last_name}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">{student.registration_number}</td>
-                    <td className="px-6 py-4">
-                      <select
-                        value={attendance[student.id]?.status || ''}
-                        onChange={(e) => handleStatusChange(student.id, e.target.value)}
-                        className="input-field py-1 px-2"
-                      >
-                        <option value="">Select Status</option>
-                        <option value="Present">Present</option>
-                        <option value="Absent">Absent</option>
-                        <option value="Late">Late</option>
-                        <option value="Excused">Excused</option>
-                      </select>
-                    </td>
-                  </tr>
-                ))}
+              <tbody>
+                {students.map((student) => {
+                  const currentStatus = attendance[student.student_id] || 'Absent'
+                  return (
+                    <tr key={student.student_id}>
+                      <td className="font-medium">
+                        {student.first_name} {student.last_name}
+                      </td>
+                      <td>{student.registration_number}</td>
+                      <td>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(currentStatus)}`}>
+                          {currentStatus}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="flex gap-1">
+                          {(['Present', 'Absent', 'Late', 'Excused'] as const).map(status => (
+                            <button
+                              key={status}
+                              onClick={() => handleStatusChange(student.student_id, status)}
+                              className={`btn btn-xs ${currentStatus === status ? 'btn-primary' : 'btn-ghost'}`}
+                            >
+                              {status[0]}
+                            </button>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
 
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="btn-primary flex items-center gap-2"
-          >
-            <Save size={20} /> {saving ? 'Saving...' : 'Save Attendance'}
-          </button>
-        </>
+          <div className="p-6 border-t bg-gray-50">
+            <div className="flex justify-end gap-4">
+              <button 
+                onClick={() => setStudents([])}
+                className="btn btn-ghost"
+              >
+                Clear
+              </button>
+              <button 
+                onClick={handleSave}
+                disabled={saving || Object.keys(attendance).length === 0}
+                className="btn btn-primary flex items-center gap-2"
+              >
+                {saving ? (
+                  <>
+                    <LoadingSpinner />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Send size={18} />
+                    Save Attendance ({Object.keys(attendance).length} students)
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
-      {selectedClass && students.length === 0 && (
-        <div className="card text-center py-8 text-gray-600">
-          No students enrolled in this class yet.
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <LoadingSpinner />
+          <span className="ml-3 text-gray-600">Loading students...</span>
         </div>
       )}
     </div>

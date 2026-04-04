@@ -23,21 +23,29 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url)
     const classId = searchParams.get('classId')
+    const termId = searchParams.get('termId')
     const date = searchParams.get('date')
 
-    let query = supabase.from('attendance').select('*')
-
-    // If school admin, only return their school attendance
-    if (user.role === 'school_admin' && user.school_id) {
-      query = query.eq('school_id', user.school_id)
+    // Base query joining enrollments and students for enrolled students
+    let query = supabase
+      .from('attendance')
+      .select(`
+        *,
+        students (id, first_name, last_name, registration_number),
+        students!enrollments_class_id_fkey (class_id)
+      `)
+      .eq('students.enrollments.class_id', classId || '')
+      
+    if (termId) {
+      query = query.eq('term_id', termId)
     }
-
-    if (classId) {
-      query = query.eq('class_id', classId)
-    }
-
     if (date) {
       query = query.eq('date', date)
+    }
+    
+    // School filter
+    if (user.role === 'school_admin' && user.school_id) {
+      query = query.eq('students.school_id', user.school_id)
     }
 
     const { data, error } = await query.order('created_at', { ascending: false })

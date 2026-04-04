@@ -10,38 +10,36 @@ export async function GET(req: NextRequest) {
     }
 
     const supabase = getSupabaseAdminClient()
-
-    const { data: user } = await supabase
+    const { data: user, error: userError } = await supabase
       .from('users')
-      .select('*')
+      .select('role, school_id')
       .eq('clerk_id', userId)
       .single()
 
-    if (!user) {
+    if (userError || !user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     let query = supabase
-      .from('teachers')
+      .from('terms')
       .select(`
         *,
-        users (full_name, email, phone)
+        session:academic_sessions(name)
       `)
-      .order('created_at', { ascending: false })
+      .order('start_date', { ascending: false })
 
     if (user.role === 'school_admin' && user.school_id) {
       query = query.eq('school_id', user.school_id)
     }
 
     const { data, error } = await query
-
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error fetching teachers:', error)
+    console.error('Error fetching terms:', error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
@@ -54,63 +52,56 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = getSupabaseAdminClient()
-
-    const { data: user } = await supabase
+    const { data: user, error: userError } = await supabase
       .from('users')
-      .select('*')
+      .select('role, school_id')
       .eq('clerk_id', userId)
       .single()
 
-    if (!user) {
+    if (userError || !user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     const body = await req.json()
-    const { full_name, email, phone, employee_id, qualification } = body
+    const { name, session_id, start_date, end_date, is_current } = body
 
-    if (!full_name || !email) {
-      return NextResponse.json({ error: 'Full name and email are required' }, { status: 400 })
+    if (!name || !session_id || !start_date || !end_date) {
+      return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
     }
 
-    const school_id = user.role === 'school_admin' ? user.school_id : body.school_id
+    const school_id = user.role === 'state_admin' ? body.school_id : user.school_id
+    if (!school_id) {
+      return NextResponse.json({ error: 'School ID is required' }, { status: 400 })
+    }
 
-    // Create user account for teacher
-    const { data: teacherUser, error: userError } = await supabase
-      .from('users')
-      .insert({
-        clerk_id: `teacher_${Date.now()}`,
-        full_name,
-        email,
-        phone,
-        role: 'teacher',
-        school_id,
+    // Ensure only one current term
+    if (is_current) {
+      await supabase
+        .from('terms')
+        .update({ is_current: false })
+        .eq('school_id', school_id)
+    }
+
+    const { data, error } = await supabase
+      .from('terms')
+      .insert({ 
+        name, 
+        session_id, 
+        start_date, 
+        end_date, 
+        is_current: !!is_current,
+        school_id 
       })
       .select()
       .single()
 
-    if (userError) {
-      return NextResponse.json({ error: userError.message }, { status: 500 })
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // Create teacher record
-    const { data: teacher, error: teacherError } = await supabase
-      .from('teachers')
-      .insert({
-        user_id: teacherUser.id,
-        school_id,
-        employee_id,
-        qualification,
-      })
-      .select()
-      .single()
-
-    if (teacherError) {
-      return NextResponse.json({ error: teacherError.message }, { status: 500 })
-    }
-
-    return NextResponse.json(teacher, { status: 201 })
+    return NextResponse.json(data, { status: 201 })
   } catch (error) {
-    console.error('Error creating teacher:', error)
+    console.error('Error creating term:', error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

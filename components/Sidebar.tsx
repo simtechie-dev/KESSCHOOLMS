@@ -9,7 +9,7 @@ import { useState } from 'react'
 interface NavItem {
   label: string
   href: string
-  icon: string
+  icon: string | React.ReactNode
 }
 
 interface SidebarProps {

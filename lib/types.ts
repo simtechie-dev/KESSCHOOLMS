@@ -163,3 +163,26 @@ export interface FeeStructure {
   other_fees?: number
   created_at: string
 }
+
+export interface AcademicSession {
+  id: string
+  school_id: string
+  name: string
+  start_date: string
+  end_date: string
+  is_current: boolean
+  created_at: string
+  updated_at?: string
+}
+
+export interface Term {
+  id: string
+  session_id: string
+  school_id: string
+  name: 'First Term' | 'Second Term' | 'Third Term'
+  start_date: string
+  end_date: string
+  is_current: boolean
+  created_at: string
+  updated_at?: string
+}

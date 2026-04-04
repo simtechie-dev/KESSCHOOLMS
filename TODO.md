@@ -1,11 +1,7 @@
-# KSSMS Role Fix & Dashboard Pages - TODO
+# Profile Page Fix TODO
 
 ## Steps:
-1. [✅] Create TODO.md
-2. [✅] Read layout.tsx & Sidebar.tsx
-3. [✅] Edit layout.tsx for server-side role fetch
-4. [✅] Sidebar menus already correct
-5. [✅] Sidebar tested (dev running)
-6. [✅] APIs checked: students OK, classes/fees/attendance use client supabase - fix to admin
-7. [ ] Complete
-
+- [x] Step 1: Update app/api/users/profile/route.ts - Add PUT handler for profile updates
+- [x] Step 2: Update app/dashboard/profile/page.tsx - Add edit functionality, simplify school fetch, improve error handling, use "Not set" for phone
+- [x] Step 3: Test the implementation
+- [ ] Step 4: Complete task

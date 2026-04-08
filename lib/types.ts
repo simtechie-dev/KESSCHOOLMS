@@ -90,6 +90,8 @@ export interface Enrollment {
   updated_at: string
 }
 
+
+
 export interface Attendance {
   id: string
   student_id: string
@@ -99,6 +101,32 @@ export interface Attendance {
   recorded_by?: string
   created_at: string
 }
+
+export interface AttendanceRecordInput {
+  student_id: string
+  status: 'Present' | 'Absent' | 'Late' | 'Excused'
+}
+
+export interface AttendancePayload {
+  class_id: string
+  date: string
+  term_id: string
+  records: AttendanceRecordInput[]
+}
+
+export interface AttendanceSummary {
+  id: string
+  registration_number: string
+  first_name: string
+  last_name: string
+  present_days: number
+  absent_days: number
+  late_days: number
+  excused_days: number
+  total_days: number
+  percentage: number
+}
+
 
 export interface Exam {
   id: string
@@ -114,14 +142,36 @@ export interface Exam {
 
 export interface Result {
   id: string
+  school_id: string
   student_id: string
+  subject_id: string
   exam_id: string
-  score: number
+  term_id: string
+  class_id: string
+  ca1?: number
+  ca2?: number
+  ca3?: number
+  exam?: number
+  total?: number
   grade?: string
-  remarks?: string
+  remark?: string
   recorded_by?: string
   created_at: string
   updated_at: string
+}
+
+export interface ResultScoreInput {
+  student_id: string
+  ca1?: number
+  ca2?: number
+  exam?: number
+}
+
+export interface ResultPayload {
+  term_id: string
+  class_id: string
+  subject_id: string
+  scores: ResultScoreInput[]
 }
 
 export interface ReportCard {

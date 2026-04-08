@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { getSupabaseAdminClient } from '@/lib/supabase'
+import type { AttendanceSummary } from '@/lib/types'
 
 export async function GET(req: NextRequest) {
   try {
@@ -21,22 +22,18 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url)
-    const classId = searchParams.get('classId')
-    const termId = searchParams.get('termId')
+    const class_id = searchParams.get('class_id')
+    const term_id = searchParams.get('term_id')
 
-    if (!classId || !termId) {
-      return NextResponse.json({ error: 'classId and termId required' }, { status: 400 })
+    if (!class_id || !term_id) {
+      return NextResponse.json({ error: 'class_id and term_id required' }, { status: 400 })
     }
 
     let query = supabase
       .from('attendance')
-      .select(`
-        student_id,
-        status,
-        count(*) as count
-      `)
-      .eq('class_id', classId)
-      .eq('term_id', termId)
+      .select('student_id, status, count(*) as count')
+      .eq('class_id', class_id)
+      .eq('term_id', term_id)
 
     if (user.role === 'school_admin' && user.school_id) {
       query = query.eq('school_id', user.school_id)
@@ -61,18 +58,22 @@ export async function GET(req: NextRequest) {
     }, {})
 
     // Join with student names
+    const studentIds = Object.keys(summary)
     const { data: students } = await supabase
       .from('students')
       .select('id, first_name, last_name, registration_number')
-      .in('id', Object.keys(summary))
+      .in('id', studentIds)
 
-    const result = students.map((student: any) => {
+    const result: AttendanceSummary[] = students.map((student: any) => {
       const stats = summary[student.id] || { present: 0, absent: 0, late: 0, excused: 0 }
       const total = stats.present + stats.absent + stats.late + stats.excused
       const percentage = total > 0 ? Math.round((stats.present / total) * 100) : 0
 
       return {
-        ...student,
+        id: student.id,
+        registration_number: student.registration_number,
+        first_name: student.first_name,
+        last_name: student.last_name,
         present_days: stats.present,
         absent_days: stats.absent,
         late_days: stats.late,

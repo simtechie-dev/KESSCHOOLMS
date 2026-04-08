@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { getSupabaseAdminClient } from '@/lib/supabase'
+import type { AttendancePayload, AttendanceRecordInput } from '@/lib/types'
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,10 +11,9 @@ export async function GET(req: NextRequest) {
     }
 
     const supabase = getSupabaseAdminClient()
-    // Get user to check role and school
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('*')
+      .select('role, school_id')
       .eq('clerk_id', userId)
       .single()
 
@@ -22,39 +22,69 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url)
-    const classId = searchParams.get('classId')
-    const termId = searchParams.get('termId')
+    const class_id = searchParams.get('class_id')
+    const term_id = searchParams.get('term_id')
     const date = searchParams.get('date')
 
-    // Base query joining enrollments and students for enrolled students
-    let query = supabase
-      .from('attendance')
+    if (!class_id) {
+      return NextResponse.json({ error: 'class_id required' }, { status: 400 })
+    }
+
+    // Fetch enrolled students for class + LEFT JOIN attendance
+    let studentQuery = supabase
+      .from('enrollments')
       .select(`
         *,
-        students (id, first_name, last_name, registration_number),
-        students!enrollments_class_id_fkey (class_id)
+        students!enrollments_student_id_fkey (
+          id,
+          registration_number,
+          first_name, 
+          last_name,
+          school_id
+        ),
+        attendance!enrollments_student_id_fkey (
+          status,
+          date,
+          term_id
+        )
       `)
-      .eq('students.enrollments.class_id', classId || '')
-      
-    if (termId) {
-      query = query.eq('term_id', termId)
+      .eq('class_id', class_id)
+
+    if (user.role === 'school_admin' && user.school_id) {
+      studentQuery = studentQuery.eq('students.school_id', user.school_id)
+    }
+
+    if (term_id) {
+      studentQuery = studentQuery.eq('attendance.term_id', term_id)
     }
     if (date) {
-      query = query.eq('date', date)
-    }
-    
-    // School filter
-    if (user.role === 'school_admin' && user.school_id) {
-      query = query.eq('students.school_id', user.school_id)
+      studentQuery = studentQuery.eq('attendance.date', date)
     }
 
-    const { data, error } = await query.order('created_at', { ascending: false })
+    const { data: enrollments, error } = await studentQuery
 
     if (error) {
+      // Fallback: fetch school students if no enrollments
+      if (error.message.includes('relation') || enrollments?.length === 0) {
+        const schoolQuery = supabase
+          .from('students')
+          .select('id, registration_number, first_name, last_name, school_id')
+          .eq('school_id', user.school_id || '')
+        const { data: students } = await schoolQuery
+        return NextResponse.json(students || [])
+      }
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json(data)
+    const students = enrollments?.map((enr: any) => ({
+      student_id: enr.students.id,
+      registration_number: enr.students.registration_number,
+      first_name: enr.students.first_name,
+      last_name: enr.students.last_name,
+      status: enr.attendance?.[0]?.status || null
+    })) || []
+
+    return NextResponse.json(students)
   } catch (error) {
     console.error('Error fetching attendance:', error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
@@ -80,36 +110,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
-    const body = await req.json()
-    const { student_id, class_id, date, status } = body
+    const payload: AttendancePayload = await req.json()
+    const { class_id, date, term_id, records } = payload
 
-    if (!student_id || !class_id || !date || !status) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    if (!class_id || !date || !term_id || !records || !Array.isArray(records)) {
+      return NextResponse.json({ error: 'Missing class_id, date, term_id, or records array' }, { status: 400 })
     }
 
-    if (!['Present', 'Absent', 'Late', 'Excused'].includes(status)) {
-      return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
+    if (records.some((rec: any) => !rec.student_id || !['Present', 'Absent', 'Late', 'Excused'].includes(rec.status))) {
+      return NextResponse.json({ error: 'Invalid record format or status' }, { status: 400 })
     }
+
+    const upserts = records.map((rec: AttendanceRecordInput) => ({
+      student_id: rec.student_id,
+      class_id,
+      term_id,
+      date,
+      status: rec.status,
+      recorded_by: userId
+    }))
 
     const { data, error } = await supabase
       .from('attendance')
-      .upsert(
-        {
-          student_id,
-          class_id,
-          date,
-          status,
-          recorded_by: userId,
-        },
-        { onConflict: 'student_id,class_id,date' }
-      )
+      .upsert(upserts, { onConflict: 'student_id,class_id,term_id,date' })
       .select()
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json(data[0], { status: 201 })
+    return NextResponse.json({ success: true, count: data.length }, { status: 201 })
   } catch (error) {
     console.error('Error recording attendance:', error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })

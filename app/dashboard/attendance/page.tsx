@@ -9,7 +9,7 @@ interface StudentAttendance {
   first_name: string
   last_name: string
   registration_number: string
-  status?: string
+  status?: 'Present' | 'Absent' | 'Late' | 'Excused' | null
 }
 
 export default function AttendancePage() {
@@ -61,30 +61,30 @@ export default function AttendancePage() {
   }
 
   const fetchStudents = async () => {
-    if (!selectedClass) return
+    if (!selectedClass || !selectedTerm) return
     try {
       setLoading(true)
       const params = new URLSearchParams({
-        classId: selectedClass,
+        class_id: selectedClass,
         date,
-        termId: selectedTerm
+        term_id: selectedTerm
       })
       const response = await fetch(`/api/attendance?${params}`)
       if (response.ok) {
         const data = await response.json()
         setStudents(data)
-        // Initialize attendance state
+        // Initialize attendance state - default Absent if no status
         const attendanceObj: Record<string, string> = {}
         data.forEach((item: StudentAttendance) => {
           attendanceObj[item.student_id] = item.status || 'Absent'
         })
         setAttendance(attendanceObj)
       } else {
-        setError('Failed to load students')
+        setError('Failed to load students/attendance')
       }
     } catch (err) {
       console.error('Error fetching students:', err)
-      setError('Failed to load students')
+      setError('Failed to load students/attendance')
     } finally {
       setLoading(false)
     }
@@ -100,23 +100,29 @@ export default function AttendancePage() {
   const handleSave = async () => {
     setSaving(true)
     setError('')
+    setMessage('')
     try {
-      const attendanceData = Object.entries(attendance).map(([studentId, status]) => ({
+      const records = Object.entries(attendance).map(([studentId, status]) => ({
         student_id: studentId,
-        class_id: selectedClass,
-        date,
         status
       }))
 
       const response = await fetch('/api/attendance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(attendanceData)
+        body: JSON.stringify({
+          class_id: selectedClass,
+          date,
+          term_id: selectedTerm,
+          records
+        })
       })
 
       if (response.ok) {
         setMessage('Attendance saved successfully!')
         setTimeout(() => setMessage(''), 3000)
+        // Refetch to update status
+        fetchStudents()
       } else {
         const errorData = await response.json()
         setError(errorData.error || 'Failed to save attendance')
@@ -128,14 +134,14 @@ export default function AttendancePage() {
     }
   }
 
-  const statusColor = (status: string) => {
-    const colors = {
-      'Present': 'bg-success text-success-content',
-      'Absent': 'bg-error text-error-content',
-      'Late': 'bg-warning text-warning-content',
-      'Excused': 'bg-info text-info-content'
+  const statusColor = (status: string): string => {
+    switch (status) {
+      case 'Present': return 'bg-success text-success-content'
+      case 'Absent': return 'bg-error text-error-content'
+      case 'Late': return 'bg-warning text-warning-content'
+      case 'Excused': return 'bg-info text-info-content'
+      default: return 'bg-gray-200 text-gray-800'
     }
-    return colors[status] || 'bg-gray-200 text-gray-800'
   }
 
   return (
@@ -250,13 +256,17 @@ export default function AttendancePage() {
                       <td>
                         <div className="flex gap-1">
                           {(['Present', 'Absent', 'Late', 'Excused'] as const).map(status => (
-                            <button
-                              key={status}
-                              onClick={() => handleStatusChange(student.student_id, status)}
-                              className={`btn btn-xs ${currentStatus === status ? 'btn-primary' : 'btn-ghost'}`}
-                            >
-                              {status[0]}
-                            </button>
+                            <label className="label cursor-pointer gap-2 p-1 hover:bg-gray-100 rounded">
+                              <input
+                                type="radio"
+                                name={`status-${student.student_id}`}
+                                value={status}
+                                checked={currentStatus === status}
+                                onChange={() => handleStatusChange(student.student_id, status)}
+                                className="radio radio-sm"
+                              />
+                              <span className="text-sm font-medium">{status[0]}</span>
+                            </label>
                           ))}
                         </div>
                       </td>

@@ -1,12 +1,11 @@
 import { UserRole } from './types'
 
 export const gradeScale = [
-  { range: [90, 100], grade: 'A', point: 5 },
-  { range: [80, 89], grade: 'B', point: 4 },
-  { range: [70, 79], grade: 'C', point: 3 },
-  { range: [60, 69], grade: 'D', point: 2 },
-  { range: [50, 59], grade: 'E', point: 1 },
-  { range: [0, 49], grade: 'F', point: 0 },
+  { range: [75, 100], grade: 'A', description: 'Excellent', point: 5 },
+  { range: [65, 74], grade: 'B', description: 'Very Good', point: 4 },
+  { range: [55, 64], grade: 'C', description: 'Good', point: 3 },
+  { range: [45, 54], grade: 'D', description: 'Pass', point: 2 },
+  { range: [0, 44], grade: 'F', description: 'Fail', point: 0 },
 ]
 
 export function calculateGrade(score: number): string {

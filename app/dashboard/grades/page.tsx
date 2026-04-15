@@ -67,8 +67,9 @@ export default function GradesPage() {
       const studentsResponse = await fetch(`/api/classes/${selectedClass}/students`)
       if (studentsResponse.ok) {
         const studentsData = await studentsResponse.json()
-        setStudents(studentsData)
+        setStudents(Array.isArray(studentsData) ? studentsData : [])
         const gradeRecords: Record<string, GradeEntry> = {}
+
         studentsData.forEach((student: Student) => {
           gradeRecords[student.id] = { student_id: student.id, score: '' }
         })
@@ -212,11 +213,12 @@ export default function GradesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {students.map((student) => {
+                {students?.map((student) => {
                   const grade = grades[student.id]
                   const letterGrade = grade?.score !== '' ? calculateGrade(Number(grade?.score)) : '-'
 
                   return (
+
                     <tr key={student.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 font-medium text-gray-800">
                         {student.first_name} {student.last_name}

@@ -1,45 +1,26 @@
-# Attendance Module Completion TODO
+# KESSCHOOLMS Task Completion Plan
 
-## Approved Plan Steps:
+## Remaining Tasks Progress Tracker
 
-### 1. Update lib/types.ts
-- Add AttendanceSummary, AttendanceRecordInput, AttendancePayload interfaces
+### Phase 1: API Enhancements
+- [x] Step 1: Updated `app/api/schools/route.ts` with student_count, teacher_count, search/?lga= support.
 
-### 2. Fix app/api/attendance/route.ts
-- GET: Fetch enrolled students + attendance (school fallback)
-- POST: Bulk upsert {class_id, date, term_id, records: [{student_id, status}]}
+- [ ] Step 3: Ensure `app/api/attendance/summary/route.ts` supports student+term, format {present_days, absent_days, total_days, percentage}.
 
-### 3. Verify app/api/attendance/summary/route.ts
-- Ensure class_id, term_id params work for report
+### Phase 2: Frontend Updates
 
-### 4. Update app/dashboard/attendance/page.tsx
-- Radio buttons per row
-- Fetch students by class (separate /api/students?class_id)
-- Bulk POST format
-- Prefill from GET /api/attendance
+- [ ] Step 5: Update `app/dashboard/analytics/page.tsx`: Fetch from /api/dashboard/analytics, populate stats/charts/table w/ real data (bar students per LGA, top10 table).
+- [ ] Step 6: Update `app/dashboard/reports/[studentId]/page.tsx`: 
+  - Fetch school.name from student.school_id, class.name from enrollment, session.name from term/session_id.
+  - Format attendance summary exactly as "Days Present | Days Absent | Total Days | Percentage".
+  - Add @media print { body { margin: 0; } .print-hidden { display: none !important; } .sidebar, .navbar { display: none !important; } }
+  - Verify print button.
+- [ ] Step 7: Polish `app/dashboard/results/page.tsx` if needed (already has inputs/save).
 
-### 5. Create app/dashboard/attendance/report/page.tsx
-- Class/Term selectors
-- Summary table w/ colors (>80% green, 60-80% yellow, <60% red)
-- Optional export button (console.log for now)
+### Phase 3: Testing & Completion
+- [ ] Step 8: Test in dev: npm run dev, login as state_admin/school_admin, verify data loads, print works, inputs save, charts render.
+- [ ] Step 9: attempt_completion w/ results.
 
-### 6. Test All
-- Local dev server
-- End-to-end: Take attendance → view report
-- Edge cases: No enrollments, existing data
+**Current Progress:** Ready to start Step 1.
 
-### 7. Update this TODO.md
-- Mark complete steps
-- attempt_completion
-
-**Progress: 7/7** ✅ Attendance module complete!
-
-## Summary:
-- ✅ Types added
-- ✅ APIs: GET/POST bulk, summary
-- ✅ UI: Take attendance w/ radios/bulk save
-- ✅ Report page w/ colors/export stub
-- ✅ TS fixes
-- Ready for testing: npm run dev
-
-
+Track updates here after each step completion.

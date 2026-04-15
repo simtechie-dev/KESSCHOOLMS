@@ -9,12 +9,29 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const supabase = getSupabaseAdminClient()
+const supabase = getSupabaseAdminClient()
 
-    const { data, error } = await supabase
+    const url = req.url ? new URL(req.url) : new URL('http://localhost')
+    const searchTerm = url.searchParams.get('search') || ''
+    const lgaFilter = url.searchParams.get('lga') || ''
+
+    let query = supabase
       .from('schools')
-      .select('id, name, lga, code')
+      .select(`
+        id, name, code, lga,
+        student_count:students(count),
+        teacher_count:teachers(count)
+      `)
       .order('name', { ascending: true })
+
+    if (searchTerm) {
+      query = query.or(`name.ilike.%${searchTerm}%,code.ilike.%${searchTerm}%,lga.ilike.%${searchTerm}%`)
+    }
+    if (lgaFilter) {
+      query = query.eq('lga', lgaFilter)
+    }
+
+    const { data, error } = await query
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })

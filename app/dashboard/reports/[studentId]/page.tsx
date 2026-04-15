@@ -20,7 +20,7 @@ export default function ReportCardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const termId = 'current-term-id' // Fetch from context or param
+
   const classId = 'current-class-id' // From enrollment
 
   useEffect(() => {

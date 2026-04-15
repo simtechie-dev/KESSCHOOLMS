@@ -1,9 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { getSupabaseClient } from '@/lib/supabase'
 import { Class, Student, Result, ReportCard } from '@/lib/types'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { Download, FileText } from 'lucide-react'
+
+const supabase = getSupabaseClient()
 
 export default function ReportCardsPage() {
   const [classes, setClasses] = useState<Class[]>([])
@@ -29,7 +32,13 @@ export default function ReportCardsPage() {
 
   const fetchClasses = async () => {
     try {
-      const response = await fetch('/api/classes')
+      const response = await fetch('/api/classes', { credentials: 'include' })
+      
+      if (response.status === 401) {
+        window.location.href = '/sign-in'
+        return
+      }
+      
       if (response.ok) {
         const data = await response.json()
         setClasses(data)
@@ -41,13 +50,24 @@ export default function ReportCardsPage() {
 
   const fetchClassStudents = async () => {
     try {
-      const response = await fetch(`/api/classes/${selectedClass}?resource=students`)
-      if (response.ok) {
-        const data = await response.json()
-        setStudents(data)
-        setSelectedStudent('')
+      const response = await fetch(`/api/students?class_id=${selectedClass}`, {
+        credentials: 'include'
+      })
+      
+      if (response.status === 401) {
+        window.location.href = '/sign-in'
+        return
       }
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      setStudents(Array.isArray(data) ? data : [])
+      setSelectedStudent('')
     } catch (err) {
+      console.error('Error fetching students:', err)
       setError(err instanceof Error ? err.message : 'Error fetching students')
     }
   }
@@ -63,7 +83,7 @@ export default function ReportCardsPage() {
 
     try {
       // Fetch student results
-      const resultsResponse = await fetch(`/api/results?studentId=${selectedStudent}`)
+      const resultsResponse = await fetch(`/api/results?studentId=${selectedStudent}`, { credentials: 'include' })
       if (!resultsResponse.ok) throw new Error('Failed to fetch results')
       const results = await resultsResponse.json()
 
@@ -145,20 +165,27 @@ export default function ReportCardsPage() {
             </select>
           </div>
 
-          <div className="form-group">
+      {(!selectedClass || students.length === 0) && (
+        <div className="col-span-full text-center py-8 text-gray-500">
+          {selectedClass ? 'No students in this class or loading...' : 'Select a class first'}
+        </div>
+      )}
+      <div className="form-group">
             <label className="form-label">Select Student *</label>
             <select
               value={selectedStudent}
               onChange={(e) => setSelectedStudent(e.target.value)}
               className="input-field"
-              disabled={!selectedClass}
+              disabled={!selectedClass || students.length === 0}
             >
+
               <option value="">-- Select Student --</option>
-              {students.map((student) => (
+              {students?.map((student) => (
                 <option key={student.id} value={student.id}>
                   {student.first_name} {student.last_name}
                 </option>
-              ))}
+              )) || []}
+
             </select>
           </div>
 

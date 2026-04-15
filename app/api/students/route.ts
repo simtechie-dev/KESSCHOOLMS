@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
     }
 
     const url = new URL(req.url)
+    const classId = url.searchParams.get('class_id')
     const page = Number(url.searchParams.get('page') || '1')
     const pageSize = Number(url.searchParams.get('pageSize') || '25')
     const start = (page - 1) * pageSize
@@ -29,12 +30,25 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from('students')
-      .select('id, registration_number, first_name, last_name, gender, parent_phone, school_id')
+      .select(`
+        id, 
+        registration_number, 
+        first_name, 
+        last_name, 
+        gender, 
+        parent_phone, 
+        school_id,
+        enrollments!inner(class_id)
+      `)
       .order('last_name')
       .range(start, end)
 
     if (user.role === 'school_admin' && user.school_id) {
       query = query.eq('school_id', user.school_id)
+    }
+
+    if (classId) {
+      query = query.eq('enrollments.class_id', classId)
     }
 
     const { data, error } = await query

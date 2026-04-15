@@ -38,10 +38,9 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!isLoaded || !clerkUser) return
 
-    setError(null) // Clear any previous errors when fetching starts
+    setError(null)
     const fetchData = async () => {
       try {
-        // Sync user first
         const syncResponse = await fetch('/api/auth/sync-user', {
           method: 'POST',
         })
@@ -53,7 +52,6 @@ export default function DashboardPage() {
         const user = await syncResponse.json()
 
         if (!user) {
-          // Show setup message if no user found
           setShowSetup(true)
           setLoading(false)
           return
@@ -61,16 +59,15 @@ export default function DashboardPage() {
 
         setUserData(user as User)
 
-        // Fetch stats from API route
-        const statsResponse = await fetch('/api/dashboard/stats')
+        const statsResponse = await fetch('/api/dashboard/analytics')
         if (!statsResponse.ok) {
           throw new Error('Failed to fetch stats')
         }
         const statsData = await statsResponse.json()
         setStats(statsData)
       } catch (error) {
-        console.error('Error fetching dashboard data:', error) // Log the error for debugging
-        setError('Failed to load dashboard data. Please try again.') // Set a user-friendly error message
+        console.error('Error fetching dashboard data:', error)
+        setError('Failed to load dashboard data. Please try again.')
       } finally {
         setLoading(false)
       }
@@ -109,7 +106,7 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold mb-4">Error Loading Dashboard</h1>
           <p className="mb-4">{error}</p>
           <button
-            onClick={() => window.location.reload()} // Simple retry by reloading the page
+            onClick={() => window.location.reload()}
             className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
           >
             Try Again
@@ -120,8 +117,7 @@ export default function DashboardPage() {
   }
 
   if (!userData) {
-    // This case should ideally be covered by error or showSetup, but as a fallback
-    return <div>No user data found after loading. This should not happen.</div>
+    return <div>No user data found after loading.</div>
   }
 
   return (

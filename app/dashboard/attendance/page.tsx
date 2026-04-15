@@ -72,9 +72,10 @@ export default function AttendancePage() {
       const response = await fetch(`/api/attendance?${params}`)
       if (response.ok) {
         const data = await response.json()
-        setStudents(data)
+        setStudents(Array.isArray(data) ? data : [])
         // Initialize attendance state - default Absent if no status
         const attendanceObj: Record<string, string> = {}
+
         data.forEach((item: StudentAttendance) => {
           attendanceObj[item.student_id] = item.status || 'Absent'
         })

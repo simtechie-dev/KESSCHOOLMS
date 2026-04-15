@@ -21,9 +21,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Get school name separately
+    // Get school name separately - but not for state_admin
     let school_name = null
-    if (user.school_id) {
+    if (user.school_id && user.role !== 'state_admin') {
       const { data: school } = await supabase
         .from('schools')
         .select('name')
@@ -79,7 +79,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
     }
 
-    // Return updated profile with school_name
+// Return updated profile with school_name - skip for state_admin
     const { data: updatedUser } = await supabase
       .from('users')
       .select('*')
@@ -87,7 +87,7 @@ export async function PUT(req: NextRequest) {
       .single()
 
     let school_name = null
-    if (updatedUser.school_id) {
+    if (updatedUser.school_id && updatedUser.role !== 'state_admin') {
       const { data: school } = await supabase
         .from('schools')
         .select('name')

@@ -59,12 +59,20 @@ export default function DashboardPage() {
 
         setUserData(user as User)
 
-        const statsResponse = await fetch('/api/dashboard/analytics')
+        const statsResponse = await fetch('/api/dashboard/stats')
         if (!statsResponse.ok) {
           throw new Error('Failed to fetch stats')
         }
+
         const statsData = await statsResponse.json()
-        setStats(statsData)
+        console.log("Raw API data:", statsData)
+        setStats({
+          totalSchools: statsData.totalSchools || 0,
+          totalStudents: statsData.totalStudents || 0,
+          totalTeachers: statsData.totalTeachers || 0,
+          totalAttendanceToday: statsData.totalAttendanceToday || 0,
+        })
+
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
         setError('Failed to load dashboard data. Please try again.')
@@ -140,38 +148,41 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {userData.role === 'state_admin' && (
           <>
+
             <StatCard
               title="Total Schools"
-              value={stats.totalSchools}
+              value={typeof stats.totalSchools === 'object' ? stats.totalSchools.count : (stats.totalSchools || 0)}
               icon="🏫"
               color="blue"
             />
             <StatCard
               title="Total Students"
-              value={stats.totalStudents}
+              value={typeof stats.totalStudents === 'object' ? stats.totalStudents.count : (stats.totalStudents || 0)}
               icon="👨‍🎓"
               color="green"
             />
             <StatCard
               title="Total Teachers"
-              value={stats.totalTeachers}
+              value={typeof stats.totalTeachers === 'object' ? stats.totalTeachers.count : (stats.totalTeachers || 0)}
               icon="👨‍🏫"
               color="purple"
             />
+
           </>
         )}
 
         {userData.role === 'school_admin' && (
           <>
+
             <StatCard
               title="Total Students"
-              value={stats.totalStudents}
+              value={typeof stats.totalStudents === 'object' ? stats.totalStudents.count : stats.totalStudents}
               icon="👨‍🎓"
               color="blue"
             />
             <StatCard
               title="Total Teachers"
-              value={stats.totalTeachers}
+              value={typeof stats.totalTeachers === 'object' ? stats.totalTeachers.count : stats.totalTeachers}
               icon="👨‍🏫"
               color="green"
             />

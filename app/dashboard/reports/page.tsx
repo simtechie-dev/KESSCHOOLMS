@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { getSupabaseClient } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
 import { Class, Student, Result, ReportCard } from '@/lib/types'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { Download, FileText } from 'lucide-react'

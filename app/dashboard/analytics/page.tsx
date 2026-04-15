@@ -43,23 +43,16 @@ export default function AnalyticsPage() {
     const fetchAnalytics = async () => {
       try {
         // Fetch statistics from API routes
-        const [
-          schoolsResponse,
-          studentsResponse,
-          teachersResponse,
-        ] = await Promise.all([
-          fetch('/api/schools'),
-          fetch('/api/students'),
-          fetch('/api/teachers'),
-        ])
-
-        if (!schoolsResponse.ok || !studentsResponse.ok || !teachersResponse.ok) {
-          throw new Error('Failed to fetch data')
+        const analyticsResponse = await fetch('/api/dashboard/analytics')
+        if (!analyticsResponse.ok) {
+          throw new Error('Failed to fetch analytics data')
         }
 
-        const schoolsData = await schoolsResponse.json()
-        const studentsData = await studentsResponse.json()
-        const teachersData = await teachersResponse.json()
+        const analyticsData = await analyticsResponse.json()
+        const { totalSchools, totalStudents, totalTeachers, schoolsByLGA, topSchools } = analyticsData
+
+        // Calculate LGA distribution if not provided
+        const lgaCount = schoolsByLGA || []
 
         // Calculate LGA distribution
         const lgaCount = (schoolsData || []).reduce((acc: any, school: any) => {
@@ -91,14 +84,15 @@ export default function AnalyticsPage() {
         ]
 
         setData({
-          totalSchools: schoolsData?.length || 0,
-          totalStudents: studentsData?.length || 0,
-          totalTeachers: teachersData?.length || 0,
+          totalSchools: totalSchools || 0,
+          totalStudents: totalStudents || 0,
+          totalTeachers: totalTeachers || 0,
           attendanceRate: 85,
           passRate: 72,
           schoolsByLGA: lgaCount,
           studentGradeDistribution: gradeDistribution,
           attendanceTrend,
+          topSchools: topSchools || []
         })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error fetching analytics')

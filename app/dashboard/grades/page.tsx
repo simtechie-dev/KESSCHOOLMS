@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Exam, Result, Subject, Class, Student } from '@/lib/types'
 import LoadingSpinner from '@/components/LoadingSpinner'
-import { calculateGrade, getAttendanceColor } from '@/lib/utils'
+import { Exam, Result, Subject, Class, Student } from '@/lib/types'
+import { calculateGrade } from '@/lib/utils'
 import { Save } from 'lucide-react'
 
 interface GradeEntry {
@@ -18,13 +18,11 @@ export default function GradesPage() {
   const [exams, setExams] = useState<Exam[]>([])
   const [students, setStudents] = useState<Student[]>([])
   const [results, setResults] = useState<Record<string, Result | null>>({})
-
   const [selectedClass, setSelectedClass] = useState('')
   const [selectedExam, setSelectedExam] = useState('')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-
   const [grades, setGrades] = useState<Record<string, GradeEntry>>({})
 
   useEffect(() => {
@@ -218,7 +216,6 @@ export default function GradesPage() {
                   const letterGrade = grade?.score !== '' ? calculateGrade(Number(grade?.score)) : '-'
 
                   return (
-
                     <tr key={student.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 font-medium text-gray-800">
                         {student.first_name} {student.last_name}
@@ -265,3 +262,4 @@ export default function GradesPage() {
     </div>
   )
 }
+

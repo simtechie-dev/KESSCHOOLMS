@@ -166,11 +166,6 @@ export default function ReportCardsPage() {
             </select>
           </div>
 
-      {(!selectedClass || students.length === 0) && (
-        <div className="col-span-full text-center py-8 text-gray-500">
-          {selectedClass ? 'No students in this class or loading...' : 'Select a class first'}
-        </div>
-      )}
       <div className="form-group">
             <label className="form-label">Select Student *</label>
             <select
@@ -179,14 +174,12 @@ export default function ReportCardsPage() {
               className="input-field"
               disabled={!selectedClass || students.length === 0}
             >
-
               <option value="">-- Select Student --</option>
               {students?.map((student) => (
                 <option key={student.id} value={student.id}>
                   {student.first_name} {student.last_name}
                 </option>
               )) || []}
-
             </select>
           </div>
 

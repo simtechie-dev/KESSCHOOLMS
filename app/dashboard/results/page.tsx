@@ -59,14 +59,15 @@ export default function ResultsPage() {
     setLoading(true)
     try {
       // Fetch enrolled students
-      const studentsRes = await fetch(`/api/classes/${selectedClass}`)
-      const classData = await studentsRes.json()
-      const classStudents = classData.students || [] // Assume endpoint supports ?resource=students
-      setStudents(classStudents)
+      const studentsRes = await fetch(`/api/classes/${selectedClass}/students`)
+      let classStudents = await studentsRes.json()
+      // Dedupe students
+      const uniqueStudents = Array.from(new Map(classStudents.map((s: Student) => [s.id, s])).values())
+      setStudents(uniqueStudents)
 
       // Initialize scores
       const scoreRecords: Record<string, ScoreEntry> = {}
-      classStudents.forEach((student: Student) => {
+      uniqueStudents.forEach((student: Student) => {
         scoreRecords[student.id] = {
           student_id: student.id,
           ca1: '',
@@ -139,12 +140,12 @@ export default function ResultsPage() {
       })
 
       if (res.ok) {
-        setMessage('Results saved successfully!')
+        setMessage('Results saved/updated successfully!')
         fetchStudentsAndScores() // Refresh
       } else {
         const err = await res.json()
-        console.error(err)
-        setMessage('Save failed')
+        console.error('Full error:', JSON.stringify(err, null, 2))
+        setMessage('Save failed: ' + (err?.error || err?.message || JSON.stringify(err)))
       }
     } catch (err) {
       console.error(err)
@@ -229,7 +230,7 @@ export default function ResultsPage() {
                         type="number"
                         min="0"
                         max="30"
-                        className="input input-sm input-bordered w-20"
+                        className="input input-sm input-bordered w-20 border-2 border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary"
                         value={entry.ca1 || ''}
                         onChange={(e) => updateScore(entry.student_id, 'ca1', e.target.value)}
                       />
@@ -239,7 +240,7 @@ export default function ResultsPage() {
                         type="number"
                         min="0"
                         max="30"
-                        className="input input-sm input-bordered w-20"
+                        className="input input-sm input-bordered w-20 border-2 border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary"
                         value={entry.ca2 || ''}
                         onChange={(e) => updateScore(entry.student_id, 'ca2', e.target.value)}
                       />
@@ -249,7 +250,7 @@ export default function ResultsPage() {
                         type="number"
                         min="0"
                         max="40"
-                        className="input input-sm input-bordered w-20"
+                        className="input input-sm input-bordered w-20 border-2 border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary"
                         value={entry.exam || ''}
                         onChange={(e) => updateScore(entry.student_id, 'exam', e.target.value)}
                       />

@@ -64,20 +64,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify user is teacher or school admin
+    const supabase = getSupabaseAdminClient()
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('*')
+      .select('role, school_id')
       .eq('clerk_id', userId)
       .single()
 
-    const supabase = getSupabaseAdminClient()
-    if (userError || !user || (user.role !== 'teacher' && user.role !== 'school_admin')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
-    }
-
-    // Verify user is teacher or school admin
-    if (user.role !== 'teacher' && user.role !== 'school_admin') {
+    if (userError || !user || !['teacher', 'school_admin', 'state_admin'].includes(user.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
@@ -88,42 +82,86 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing term_id, class_id, subject_id or scores array' }, { status: 400 })
     }
 
-    // For each score, calculate totals and create/update results
+    // Get school_id from class once
+    const { data: classData } = await supabase
+      .from('classes')
+      .select('school_id')
+      .eq('id', class_id)
+      .single()
+    
+    const school_id = classData?.school_id || user.school_id
+    
+    if (!school_id) {
+      return NextResponse.json({ error: 'School ID not found for class' }, { status: 400 })
+    }
+
+    // Find or create exam record for this combination
+    let exam_id = null
+    const { data: existingExam } = await supabase
+      .from('exams')
+      .select('id')
+      .eq('school_id', school_id)
+      .eq('class_id', class_id)
+      .eq('subject_id', subject_id)
+      .eq('exam_type', 'Exam')
+      .maybeSingle()
+
+    if (existingExam) {
+      exam_id = existingExam.id
+    } else {
+      const { data: newExam, error: examError } = await supabase
+        .from('exams')
+        .insert({
+          school_id,
+          class_id,
+          subject_id,
+          exam_type: 'Exam',
+          total_score: 100
+        })
+        .select('id')
+        .single()
+
+      if (examError || !newExam) {
+        console.error('Failed to create exam:', examError)
+        return NextResponse.json({ error: 'Failed to initialize exam' }, { status: 500 })
+      }
+      exam_id = newExam.id
+    }
+
+    console.log(`Using exam_id: ${exam_id} for school/class/subject`)
+
+    // Create results
     const results = scores.map((scoreInput: ResultScoreInput) => {
       const ca1 = scoreInput.ca1 || 0
       const ca2 = scoreInput.ca2 || 0
       const exam = scoreInput.exam || 0
-      const total = ca1 + ca2 + exam  // Assume CA1/CA2 30 each, Exam 40 = 100
+      const total = ca1 + ca2 + exam
       const grade = total > 0 ? calculateGrade(total) : ''
-
       return {
-        school_id: user.school_id!,
         student_id: scoreInput.student_id,
-        subject_id,
-        class_id,
-        term_id,
-        ca1,
-        ca2,
-        exam,
-        total,
+        exam_id,
+        score: total,
         grade,
-        remark: '',
-        recorded_by: userId
+        remarks: '',
+        recorded_by: user.id
       }
     })
 
     const { data, error } = await supabase
       .from('results')
-      .upsert(results, { onConflict: 'student_id,subject_id,class_id,term_id' })
+      .upsert(results, { onConflict: 'student_id,exam_id' })
       .select()
 
     if (error) {
+      console.error('Supabase results error:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, count: data.length }, { status: 201 })
+    console.log('Results saved:', data.length)
+    return NextResponse.json({ success: true, count: data.length, exam_id }, { status: 201 })
   } catch (error) {
     console.error('Error saving results:', error)
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Server error', details: error }, { status: 500 })
   }
 }
+

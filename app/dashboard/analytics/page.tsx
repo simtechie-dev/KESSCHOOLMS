@@ -54,8 +54,8 @@ export default function AnalyticsPage() {
         // Calculate LGA distribution if not provided
         const lgaCount = schoolsByLGA || []
 
-        // Calculate LGA distribution
-        const lgaCount = (schoolsData || []).reduce((acc: any, school: any) => {
+        // Calculate LGA distribution if no data
+        const lgaDistribution = (analyticsData.schools || []).reduce((acc: any, school: any) => {
           const existing = acc.find((item: any) => item.name === school.lga)
           if (existing) {
             existing.value += 1
@@ -89,7 +89,7 @@ export default function AnalyticsPage() {
           totalTeachers: totalTeachers || 0,
           attendanceRate: 85,
           passRate: 72,
-          schoolsByLGA: lgaCount,
+          schoolsByLGA: lgaCount.length > 0 ? lgaCount : lgaDistribution,
           studentGradeDistribution: gradeDistribution,
           attendanceTrend,
           topSchools: topSchools || []

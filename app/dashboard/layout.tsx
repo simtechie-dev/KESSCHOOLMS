@@ -30,6 +30,7 @@ function getNavItems(role: string) {
       { label: 'Sessions', href: '/dashboard/sessions', icon: '📅' },
       { label: 'Terms', href: '/dashboard/terms', icon: '📄' },
       { label: 'Analytics', href: '/dashboard/analytics', icon: '📈' },
+      { label: 'Results', href: '/dashboard/results', icon: '🎯' },
       { label: 'Reports', href: '/dashboard/reports', icon: '📑' },
     ],
     school_admin: [

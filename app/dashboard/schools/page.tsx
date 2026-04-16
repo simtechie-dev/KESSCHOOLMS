@@ -11,8 +11,8 @@ interface School {
   code?: string
   lga?: string
   principal_name?: string
-  student_count?: number
-  teacher_count?: number
+  student_count?: { count: number } | number
+  teacher_count?: { count: number } | number
   school_name?: string
 }
 
@@ -112,9 +112,9 @@ export default function SchoolsPage() {
                     <div>{school.name || school.school_name || 'Unnamed School'}</div>
                   </td>
                   <td>{school.code || '-'}</td>
-                  <td>{school.lga || '-'}</td>
-                  <td>{school.student_count || 0}</td>
-                  <td>{school.teacher_count || 0}</td>
+                <td>{school.lga || '-'}</td>
+                  <td>{school.student_count?.count || 0}</td>
+                  <td>{school.teacher_count?.count || 0}</td>
                   <td>
                     <div className="flex gap-2">
                       <Link href={`/dashboard/schools/${school.id}`} className="btn btn-sm btn-ghost">

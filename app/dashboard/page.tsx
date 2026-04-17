@@ -200,7 +200,7 @@ export default function DashboardPage() {
         <div className="card">
           <h2 className="text-xl font-bold mb-4 text-gray-800">Quick Actions</h2>
           <div className="space-y-2">
-            {userData.role === 'school_admin' && (
+{userData.role === 'school_admin' && (
               <>
                 <a
                   href="/dashboard/students/new"
@@ -219,6 +219,22 @@ export default function DashboardPage() {
                   className="block p-3 hover:bg-blue-50 rounded text-blue-600 font-medium"
                 >
                   📊 Enter Grades
+                </a>
+              </>
+            )}
+            {userData.role === 'state_admin' && (
+              <>
+                <a href="/dashboard/schools" className="block p-3 hover:bg-blue-50 rounded text-blue-600 font-medium">
+                  🏫 View All Schools
+                </a>
+                <a href="/dashboard/analytics" className="block p-3 hover:bg-blue-50 rounded text-blue-600 font-medium">
+                  📈 View Analytics
+                </a>
+                <a href="/dashboard/reports" className="block p-3 hover:bg-blue-50 rounded text-blue-600 font-medium">
+                  📑 Generate Reports
+                </a>
+                <a href="/dashboard/sessions" className="block p-3 hover:bg-blue-50 rounded text-blue-600 font-medium">
+                  📅 Manage Sessions
                 </a>
               </>
             )}

@@ -26,11 +26,13 @@ export async function GET(req: NextRequest) {
     const class_id = searchParams.get('class_id')
     const term_id = searchParams.get('term_id')
     const subject_id = searchParams.get('subject_id')
+    const student_id = searchParams.get('studentId')
 
     let query = supabase
       .from('results')
       .select(`
         *,
+        subjects(name),
         students (
           id, first_name, last_name, registration_number
         )
@@ -40,9 +42,11 @@ export async function GET(req: NextRequest) {
       query = query.eq('school_id', user.school_id)
     }
 
+    if (student_id) query = query.eq('student_id', student_id)
     if (class_id) query = query.eq('class_id', class_id)
     if (term_id) query = query.eq('term_id', term_id)
     if (subject_id) query = query.eq('subject_id', subject_id)
+    query = query.gt('score', 0)
 
     const { data, error } = await query
 

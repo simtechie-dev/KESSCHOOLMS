@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import LoadingSpinner from '@/components/LoadingSpinner'
-import { Printer, ArrowLeft } from 'lucide-react'
+import { Printer, ArrowLeft, FileText } from 'lucide-react'
 import { calculateGrade } from '@/lib/utils'
 import type { Student, Result, ReportCard, AttendanceSummary } from '@/lib/types'
 
@@ -16,13 +16,12 @@ export default function ReportCardPage() {
   const [results, setResults] = useState<Result[]>([])
   const [reportCard, setReportCard] = useState<ReportCard | null>(null)
   const [attendanceSummary, setAttendanceSummary] = useState<AttendanceSummary | null>(null)
+  const [termId, setTermId] = useState('')
+  const [classId, setClassId] = useState('')
   const [classAverage, setClassAverage] = useState(0)
   const [position, setPosition] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-
-
-  const classId = 'current-class-id' // From enrollment
 
   useEffect(() => {
     if (studentId) {
@@ -33,14 +32,29 @@ export default function ReportCardPage() {
   const fetchReportCard = async () => {
     try {
       setLoading(true)
-      // Fetch student
+      
+      // Fetch current term (latest active)
+      const termRes = await fetch('/api/terms?limit=1&order=created_at.desc')
+      if (termRes.ok) {
+        const terms = await termRes.json()
+        if (terms.length > 0) {
+          setTermId(terms[0].id)
+        }
+      }
+
+      // Fetch student with class info
       const studentRes = await fetch(`/api/students/${studentId}`)
       if (studentRes.ok) {
         const studentData = await studentRes.json()
         setStudent(studentData)
+        if (studentData.class_id) {
+          setClassId(studentData.class_id)
+        }
       }
 
-      // Fetch results for student/term
+      if (!termId || !classId) return
+
+      // Fetch results for student/term (now filtered by API to score > 0)
       const resultsRes = await fetch(`/api/results?studentId=${studentId}&term_id=${termId}`)
       if (resultsRes.ok) {
         const resultsData = await resultsRes.json()
@@ -51,10 +65,10 @@ export default function ReportCardPage() {
       const summaryRes = await fetch(`/api/results/summary?class_id=${classId}&term_id=${termId}`)
       if (summaryRes.ok) {
         const summaryData = await summaryRes.json()
-        const studentAvg = resultsData.reduce((sum, r) => sum + (r.total || 0), 0) / resultsData.length || 0
-        const studentPos = summaryData.findIndex(s => s.id === studentId) + 1
-        setClassAverage(summaryData.reduce((sum, s) => sum + s.average, 0) / summaryData.length || 0)
-        setPosition(studentPos)
+        const studentAvg = resultsData.reduce((sum, r) => sum + (r.score || r.total || 0), 0) / resultsData.length || 0
+        const studentPos = summaryData.findIndex((s: any) => s.id === studentId) + 1 || 0
+        setClassAverage(summaryData.reduce((sum: number, s: any) => sum + (s.average || 0), 0) / summaryData.length || 0)
+        setPosition(studentPos > 0 ? studentPos : '-')
       }
 
       // Attendance
@@ -78,6 +92,17 @@ export default function ReportCardPage() {
   if (loading) return <LoadingSpinner />
   if (error) return <div className="alert alert-error">{error}</div>
   if (!student) return <div className="alert alert-warning">Student not found</div>
+  if (results.length === 0) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-12 text-center">
+        <div className="bg-white rounded-2xl p-12 shadow-xl">
+          <FileText className="mx-auto h-24 w-24 text-gray-400 mb-8" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">No results recorded yet</h2>
+          <p className="text-gray-600 mb-8">No academic results available for this term. Check back later when results are published.</p>
+        </div>
+      </div>
+    )
+  }
 
   const totalScore = results.reduce((sum, r) => sum + (r.total || 0), 0)
   const average = totalScore / results.length || 0
@@ -111,8 +136,8 @@ export default function ReportCardPage() {
                 <h2 className="text-xl font-bold mb-2">Student Information</h2>
                 <p><strong>Name:</strong> {student.first_name} {student.last_name}</p>
                 <p><strong>Reg #:</strong> {student.registration_number}</p>
-                <p><strong>Class:</strong> Current Class</p>
-                <p><strong>Term:</strong> Current Term</p>
+                <p><strong>Class:</strong> {student.class_name || 'Current Class'}</p>
+                <p><strong>Term:</strong> {termId ? `Term ${termId}` : 'Current Term'}</p>
               </div>
               <div>
                 <h2 className="text-xl font-bold mb-2">School Information</h2>

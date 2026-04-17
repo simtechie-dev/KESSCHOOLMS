@@ -25,6 +25,7 @@ function getNavItems(role: string) {
   const roleSpecificItems: Record<string, typeof baseItems> = {
     state_admin: [
       ...baseItems,
+      { label: 'Users', href: '/dashboard/users', icon: '👥' },
       { label: 'Schools', href: '/dashboard/schools', icon: '🏫' },
       { label: 'Subjects', href: '/dashboard/subjects', icon: '📖' },
       { label: 'Sessions', href: '/dashboard/sessions', icon: '📅' },
@@ -35,6 +36,7 @@ function getNavItems(role: string) {
     ],
     school_admin: [
       ...baseItems,
+      { label: 'Users', href: '/dashboard/users', icon: '👥' },
       { label: 'Students', href: '/dashboard/students', icon: '👨‍🎓' },
       { label: 'Teachers', href: '/dashboard/teachers', icon: '👨‍🏫' },
       { label: 'Classes', href: '/dashboard/classes', icon: '📚' },

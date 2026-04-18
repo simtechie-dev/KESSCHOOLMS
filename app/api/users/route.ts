@@ -11,38 +11,21 @@ export async function GET(req: NextRequest) {
 
     const supabase = getSupabaseAdminClient()
     
-    // Get requesting user role
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('role, school_id')
-      .eq('clerk_id', userId)
-      .single()
-
-    if (userError || !user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
     let query = supabase
-      .from('users')
+      .from('profiles')
       .select(`
         *,
-        schools!users_school_id_fkey (
+        schools (
           name,
           code
         )
       `)
-
-    // School admins only see their school users
-    if (user.role === 'school_admin' && user.school_id) {
-      query = query.eq('school_id', user.school_id)
-    }
-
-    // Order by created_at desc
-    query = query.order('created_at', { ascending: false })
+      .order('created_at', { ascending: false })
 
     const { data, error } = await query
 
     if (error) {
+      console.error('Database error:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 

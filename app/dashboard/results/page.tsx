@@ -41,6 +41,16 @@ export default function ResultsPage() {
   }, [selectedClass, selectedTerm, selectedSubject])
 
   const fetchClasses = async () => {
+    try {
+      const teacherRes = await fetch('/api/dashboard/teacher')
+      if (teacherRes.ok) {
+        const teacherData = await teacherRes.json()
+        setClasses(teacherData.classes || [])
+        return
+      }
+    } catch (err) {
+      console.error('Error fetching teacher classes:', err)
+    }
     const res = await fetch('/api/classes')
     if (res.ok) setClasses(await res.json())
   }
@@ -160,7 +170,8 @@ export default function ResultsPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">Enter Results</h1>
+  <h1 className="text-3xl font-bold text-gray-800 mb-4">Enter Results</h1>
+    <p className="text-gray-600 mt-2">For your assigned classes only</p>
         <p className="text-gray-600">CA1 (30) + CA2 (30) + Exam (40) = Total (100)</p>
       </div>
 

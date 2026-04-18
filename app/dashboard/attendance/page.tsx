@@ -38,13 +38,18 @@ export default function AttendancePage() {
 
   const fetchClasses = async () => {
     try {
+      const teacherRes = await fetch('/api/dashboard/teacher')
+      if (teacherRes.ok) {
+        const teacherData = await teacherRes.json()
+        setClasses(teacherData.classes || [])
+      }
+    } catch (err) {
+      console.error('Error fetching teacher classes:', err)
       const response = await fetch('/api/classes')
       if (response.ok) {
         const data = await response.json()
         setClasses(data)
       }
-    } catch (err) {
-      console.error('Error fetching classes:', err)
     }
   }
 
@@ -148,7 +153,8 @@ export default function AttendancePage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">Take Attendance</h1>
+  <h1 className="text-3xl font-bold text-gray-800 mb-4">Record Attendance</h1>
+    <p className="text-gray-600">For your assigned classes only</p>
         <p className="text-gray-600">Record attendance for your class</p>
       </div>
 

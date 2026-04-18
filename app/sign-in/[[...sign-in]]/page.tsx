@@ -1,4 +1,3 @@
-import { useRouter } from 'next/navigation'
 import { SignIn } from '@clerk/nextjs'
 
 export default function SignInPage() {
@@ -9,7 +8,10 @@ export default function SignInPage() {
           <h1 className="text-3xl font-bold text-primary mb-2">KSSMS</h1>
           <p className="text-gray-600">Kebbi State School Management System</p>
         </div>
-        <SignIn />
+        <SignIn 
+          afterSignInUrl="/api/auth/role-redirect"
+          signUpUrl="/sign-up"
+        />
       </div>
     </div>
   )

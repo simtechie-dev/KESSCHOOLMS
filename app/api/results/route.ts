@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     const class_id = searchParams.get('class_id')
     const term_id = searchParams.get('term_id')
     const subject_id = searchParams.get('subject_id')
-    const student_id = searchParams.get('studentId')
+    const student_id = searchParams.get('student_id') || searchParams.get('studentId')
 
     let query = supabase
       .from('results')
@@ -40,6 +40,8 @@ export async function GET(req: NextRequest) {
 
     if (user.role === 'school_admin' && user.school_id) {
       query = query.eq('school_id', user.school_id)
+    } else if (user.role === 'student' && student_id) {
+      query = query.eq('student_id', student_id)
     }
 
     if (student_id) query = query.eq('student_id', student_id)

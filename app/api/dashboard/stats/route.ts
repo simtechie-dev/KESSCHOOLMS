@@ -21,9 +21,14 @@ export async function GET(req: NextRequest) {
       .from('students')
       .select('*', { count: 'exact', head: true })
 
-    // Total teachers (assuming teachers table or users with role)
+// Total teachers (assuming teachers table or users with role)
     const { count: totalTeachers } = await supabase
       .from('teachers')
+      .select('*', { count: 'exact', head: true })
+
+    // Total users from profiles table
+    const { count: totalUsers } = await supabase
+      .from('profiles')
       .select('*', { count: 'exact', head: true })
 
     // Total attendance today (placeholder)
@@ -36,6 +41,7 @@ export async function GET(req: NextRequest) {
       totalSchools: totalSchools || 0,
       totalStudents: totalStudents || 0,
       totalTeachers: totalTeachers || 0,
+      totalUsers: totalUsers || 0,
       totalAttendanceToday: totalAttendanceToday || 0,
     })
   } catch (error) {

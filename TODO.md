@@ -1,43 +1,41 @@
-# KSSMS Fixes TODO
+# KSSMS Teacher & Student Portals Implementation
+## Status: ✅ In Progress
 
-## Report Card & Dashboard Fixes
+## Step-by-Step Plan
 
-### [x] 1. Update API: app/api/results/route.ts ✅
-- Add student_id filter ✓
-- JOIN subjects for subject_name ✓ 
-- Filter score > 0 (gt('score', 0)) ✓
-- Ensure total/score consistency ✓
+### Phase 1: Navigation & Layout Updates [TODO]
+- [ ] Update app/dashboard/layout.tsx - Add student nav items
+- [ ] Test sidebar renders correctly for teacher/student roles
 
-### [x] 2. Fix Report Card UI: app/dashboard/reports/[studentId]/page.tsx ✅
-- Add no-results message ✓
-- Fix hardcoded termId/classId ✓
-- Update summary calcs ✓
+### Phase 2: API Endpoints [TODO]
+- [ ] Create app/api/dashboard/teacher/route.ts
+- [ ] Create app/api/dashboard/student/route.ts  
+- [ ] Create app/api/classes/teacher/route.ts
+- [ ] Update app/api/attendance/route.ts (teacher filter)
+- [ ] Update app/api/results/route.ts (teacher filter)
 
-### [x] 3. Add state_admin Quick Actions: app/dashboard/page.tsx ✅
-- View All Schools ✓
-- View Analytics ✓
-- Generate Reports ✓
-- Manage Sessions ✓
+### Phase 3: Dashboard Pages [TODO]
+- [ ] Update app/dashboard/teacher/page.tsx (real data)
+- [ ] Update app/dashboard/student/page.tsx (real data)
+- [ ] Update app/dashboard/page.tsx (redirect role-specific?)
 
-### [x] 5. Git commit & push ✅
-- Add no-results message
-- Fix hardcoded termId/classId (make dynamic)
-- Update summary calcs
+### Phase 4: Teacher Pages [TODO]
+- [ ] Create app/dashboard/my-classes/page.tsx
+- [ ] Update app/dashboard/attendance/page.tsx (teacher filter)
+- [ ] Update app/dashboard/results/page.tsx (teacher filter)
 
-### [ ] 3. Add state_admin Quick Actions: app/dashboard/page.tsx
-- View All Schools (/schools)
-- View Analytics (/analytics)
-- Generate Reports (/reports)
-- Manage Sessions (/sessions)
+### Phase 5: Student Pages [TODO]
+- [ ] Create app/dashboard/my-grades/page.tsx
+- [ ] Create app/dashboard/my-attendance/page.tsx
+- [ ] Create app/dashboard/report-card/page.tsx
 
-### [ ] 4. Test changes
-- Report card shows only subjects with scores
-- No results message works
-- State admin quick actions visible
+### Phase 6: Testing & Polish [TODO]
+- [ ] Add types to lib/types.ts
+- [ ] Test all role-based filtering
+- [ ] Seed test teacher/student data
+- [ ] npm run dev → Test portals
+- [ ] Update this TODO with completions
 
-### [ ] 5. Git commit & push
-```
-git add . &amp;&amp; git commit -m "fix: report card shows only subjects with scores + state admin quick actions" &amp;&amp; git push
-```
+**Current Progress: 0/18 steps complete**
+**Next: Start Phase 1 - layout.tsx**
 
-**Current step: 2/5 - Report Card UI**

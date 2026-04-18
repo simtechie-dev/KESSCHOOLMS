@@ -17,6 +17,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
           const [editingData, setEditingData] = useState({ full_name: '', phone: '' })
+  const [role, setRole] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -26,6 +27,7 @@ export default function ProfilePage() {
         full_name: userData.full_name,
         phone: userData.phone || ''
       })
+      setRole(userData.role)
       setIsEditing(true)
       setError('')
     }
@@ -45,7 +47,10 @@ export default function ProfilePage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(editingData),
+        body: JSON.stringify({
+          ...editingData,
+          role
+        }),
       })
 
       if (response.ok) {
@@ -143,6 +148,20 @@ export default function ProfilePage() {
                   className="input input-bordered w-full"
                   placeholder="Enter full name"
                 />
+              </div>
+              <div>
+                <label className="form-label">Role</label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="select select-bordered w-full"
+                  disabled={userData?.role === 'state_admin'}
+                >
+                  <option value="pending">Pending Approval</option>
+                  <option value="student">Student</option>
+                  <option value="teacher">Teacher</option>
+                  <option value="school_admin">School Admin</option>
+                </select>
               </div>
               <div>
                 <label className="form-label">Phone</label>

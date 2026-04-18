@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
         clerk_id: userId,
         email: email,
         full_name: fullName,
-        role: 'school_admin',
+        role: 'pending',
       })
       .select()
       .single()

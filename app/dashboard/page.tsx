@@ -11,6 +11,7 @@ interface DashboardStats {
   totalSchools: number
   totalStudents: number
   totalTeachers: number
+  totalUsers: number
   totalAttendanceToday: number
 }
 
@@ -29,12 +30,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  if (!isLoaded) return null
-  if (isLoaded && !isSignedIn) {
-    router.push('/sign-in')
-    return null
-  }
-
   useEffect(() => {
     if (!isLoaded || !clerkUser) return
 
@@ -45,11 +40,10 @@ export default function DashboardPage() {
           method: 'POST',
         })
 
-        if (!syncResponse.ok) {
-          throw new Error('Failed to sync user')
+        let user = null
+        if (syncResponse.ok) {
+          user = await syncResponse.json()
         }
-
-        const user = await syncResponse.json()
 
         if (!user) {
           setShowSetup(true)
@@ -166,6 +160,12 @@ export default function DashboardPage() {
               value={typeof stats.totalTeachers === 'object' ? stats.totalTeachers.count : (stats.totalTeachers || 0)}
               icon="👨‍🏫"
               color="purple"
+            />
+            <StatCard
+              title="Total Users"
+              value={stats.totalUsers || 0}
+              icon="👥"
+              color="indigo"
             />
 
           </>

@@ -13,6 +13,9 @@ async function getUserData(clerkId: string): Promise<User | null> {
     .single()
 
   if (error || !data) return null
+  
+
+  
   return data as User
 }
 
@@ -25,7 +28,6 @@ function getNavItems(role: string) {
   const roleSpecificItems: Record<string, typeof baseItems> = {
     state_admin: [
       ...baseItems,
-      { label: 'Users', href: '/dashboard/users', icon: '👥' },
       { label: 'Schools', href: '/dashboard/schools', icon: '🏫' },
       { label: 'Subjects', href: '/dashboard/subjects', icon: '📖' },
       { label: 'Sessions', href: '/dashboard/sessions', icon: '📅' },
@@ -36,7 +38,6 @@ function getNavItems(role: string) {
     ],
     school_admin: [
       ...baseItems,
-      { label: 'Users', href: '/dashboard/users', icon: '👥' },
       { label: 'Students', href: '/dashboard/students', icon: '👨‍🎓' },
       { label: 'Teachers', href: '/dashboard/teachers', icon: '👨‍🏫' },
       { label: 'Classes', href: '/dashboard/classes', icon: '📚' },
@@ -49,15 +50,16 @@ function getNavItems(role: string) {
     ],
     teacher: [
       ...baseItems,
-      { label: 'My Classes', href: '/dashboard/classes', icon: '📚' },
+      { label: 'My Classes', href: '/dashboard/my-classes', icon: '📚' },
       { label: 'Attendance', href: '/dashboard/attendance', icon: '✅' },
-      { label: 'Grades', href: '/dashboard/grades', icon: '🎯' },
+      { label: 'Results', href: '/dashboard/results', icon: '🎯' },
+      { label: 'Reports', href: '/dashboard/reports', icon: '📊' },
     ],
     student: [
       ...baseItems,
-      { label: 'My Grades', href: '/dashboard/grades', icon: '🎯' },
-      { label: 'Attendance', href: '/dashboard/attendance', icon: '✅' },
-      { label: 'Reports', href: '/dashboard/reports', icon: '📑' },
+      { label: 'My Grades', href: '/dashboard/my-grades', icon: '📊' },
+      { label: 'My Attendance', href: '/dashboard/my-attendance', icon: '✅' },
+      { label: 'Report Card', href: '/dashboard/report-card', icon: '📄' },
     ],
   }
 

@@ -16,7 +16,15 @@ export async function GET(
     
     const { data, error } = await supabase
       .from('enrollments')
-      .select('students!inner(*)')
+      .select(`
+        students (
+          id,
+          first_name,
+          last_name,
+          registration_number,
+          gender
+        )
+      `)
       .eq('class_id', params.id)
 
     if (error) {
@@ -24,7 +32,16 @@ export async function GET(
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json((data || []).flatMap((e: any) => e.students))
+    // Deduplicate by student_id
+    const studentMap = new Map()
+    data?.forEach((enrollment: any) => {
+      const student = enrollment.students
+      if (student && !studentMap.has(student.id)) {
+        studentMap.set(student.id, student)
+      }
+    })
+
+    return NextResponse.json(Array.from(studentMap.values()))
   } catch (error) {
     console.error('Error fetching class students:', error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })

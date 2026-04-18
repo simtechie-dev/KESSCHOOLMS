@@ -25,7 +25,7 @@ export default function ReportCardPage() {
       const res = await fetch('/api/dashboard/student')
       if (!res.ok) throw new Error('Failed to fetch student profile')
       const data = await res.json()
-      setStudentId(data.student.id)
+      setStudentId(data.id)
     } catch (error) {
       console.error('Error:', error)
     } finally {
@@ -63,7 +63,7 @@ export default function ReportCardPage() {
 
       {/* Embed the dynamic report page */}
       <iframe 
-        src={`/dashboard/reports/${studentId}`}
+        src={`/dashboard/reports/${studentId}?term=Third+Term&year=2026`}
         className="w-full h-[80vh] border rounded-lg shadow-lg"
         title="Report Card"
       />

@@ -37,10 +37,21 @@ export default function Sidebar({ navItems, userRole }: SidebarProps) {
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="p-6 border-b border-blue-600">
-          <h1 className="text-2xl font-bold">KSSMS</h1>
-          <p className="text-sm text-blue-100">{userRole}</p>
-        </div>
+<div className="flex items-center gap-3 px-6 py-4 border-b border-blue-700">
+  <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" 
+         fill="none" stroke="#1e3a5f" strokeWidth="2" 
+         strokeLinecap="round" strokeLinejoin="round"
+         className="w-6 h-6">
+      <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+      <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+    </svg>
+  </div>
+  <div>
+    <h1 className="text-white font-bold text-lg leading-tight">KSSMS</h1>
+    <p className="text-blue-200 text-xs">Kebbi State Schools</p>
+  </div>
+</div>
 
         <nav className="flex-1 overflow-y-auto p-4">
           <ul className="space-y-2">

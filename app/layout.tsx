@@ -15,24 +15,28 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'KSSMS',
-  description: 'Kebbi State School Management System',
+  title: 'KSSMS - Kebbi State School Management System',
+  description: 'Centralized school management platform for Kebbi State',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
-    <html lang="en" data-scroll-behavior="smooth">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-
-        <ClerkProvider>
+    <ClerkProvider>
+      <html lang="en">
+        <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
           <Header />
-          <main>{children}</main>
-        </ClerkProvider>
-      </body>
-    </html>
+          {children}
+        </body>
+      </html>
+    </ClerkProvider>
   )
 }

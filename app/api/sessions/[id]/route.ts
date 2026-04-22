@@ -4,8 +4,9 @@ import { getSupabaseAdminClient } from '@/lib/supabase'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId } = await auth()
     if (!userId) {
@@ -16,7 +17,7 @@ export async function GET(
     const { data, error } = await supabase
       .from('academic_sessions')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (error || !data) {
@@ -32,8 +33,9 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId } = await auth()
     if (!userId) {
@@ -61,7 +63,7 @@ export async function PUT(
           .from('academic_sessions')
           .update({ is_current: false })
           .eq('school_id', user.school_id)
-          .neq('id', params.id)
+          .neq('id', id)
       }
     }
 
@@ -74,7 +76,7 @@ export async function PUT(
         is_current: !!is_current,
         updated_at: new Date().toISOString()
       })
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single()
 
@@ -91,8 +93,9 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId } = await auth()
     if (!userId) {
@@ -103,7 +106,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('academic_sessions')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })

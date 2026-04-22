@@ -4,8 +4,9 @@ import { getSupabaseAdminClient } from '@/lib/supabase'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId } = await auth()
     if (!userId) {
@@ -16,7 +17,7 @@ export async function GET(
     const { data, error } = await supabase
       .from('subjects')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (error || !data) {
@@ -32,8 +33,9 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId } = await auth()
     if (!userId) {
@@ -55,7 +57,7 @@ export async function PUT(
         code: code || body.name.replace(/\s+/g, '').toUpperCase().slice(0, 8),
         updated_at: new Date().toISOString()
       })
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single()
 
@@ -72,8 +74,9 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId } = await auth()
     if (!userId) {
@@ -84,7 +87,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('subjects')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })

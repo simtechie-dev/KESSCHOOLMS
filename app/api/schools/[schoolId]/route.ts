@@ -4,15 +4,14 @@ import { supabase } from '@/lib/supabase'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { schoolId: string } }
+  { params }: { params: Promise<{ schoolId: string }> }
 ) {
+  const { schoolId } = await params;
   try {
     const { userId } = await auth()
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const { schoolId } = params
 
     const { data, error } = await supabase
       .from('schools')
@@ -33,8 +32,9 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { schoolId: string } }
+  { params }: { params: Promise<{ schoolId: string }> }
 ) {
+  const { schoolId } = await params;
   try {
     const { userId } = await auth()
     if (!userId) {
@@ -51,7 +51,6 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
-    const { schoolId } = params
     const body = await req.json()
 
     const { data, error } = await supabase
@@ -73,8 +72,9 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { schoolId: string } }
+  { params }: { params: Promise<{ schoolId: string }> }
 ) {
+  const { schoolId } = await params;
   try {
     const { userId } = await auth()
     if (!userId) {
@@ -90,8 +90,6 @@ export async function DELETE(
     if (userError || !user || user.role !== 'state_admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
-
-    const { schoolId } = params
 
     const { error } = await supabase
       .from('schools')

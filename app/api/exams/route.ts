@@ -81,7 +81,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
-</xai:function_call > 
-
-<xai:function_call name="edit_file">
-<parameter name="path">c:/KESSCHOOLMS/TODO.md

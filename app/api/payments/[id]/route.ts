@@ -4,8 +4,9 @@ import { supabase } from '@/lib/supabase'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }  // ← changed from studentId to id
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: studentId } = await params;
   try {
     const { userId } = await auth()
     if (!userId) {
@@ -21,8 +22,6 @@ export async function GET(
     if (userError || !user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
-
-    const studentId = params.id  // ← changed from params.studentId to params.id
 
     if (user.role === 'school_admin') {
       const { data: student } = await supabase

@@ -4,8 +4,9 @@ import { getSupabaseAdminClient } from '@/lib/supabase'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId } = await auth()
     if (!userId) {
@@ -25,7 +26,7 @@ export async function GET(
           gender
         )
       `)
-      .eq('class_id', params.id)
+      .eq('class_id', id)
 
     if (error) {
       console.error('Error fetching class students:', error)

@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { getSupabaseAdminClient } from '@/lib/supabase'
 
+// Define the shape of the params
+type RouteContext = {
+  params: Promise<{ studentId: string }>
+}
+
 export async function GET(
   req: NextRequest,
-  { params }: { params: { studentId: string } }
+  { params }: RouteContext // Params is now treated as a Promise
 ) {
   try {
     const { userId } = await auth()
@@ -12,35 +17,37 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // 1. Await the params to "unlock" the studentId
+    const { studentId } = await params
+    
     const supabase = getSupabaseAdminClient()
-    const { studentId } = params
 
-    // Get student details
-    const { data: student } = await supabase
+    // 2. Get student details
+    const { data: student, error: studentError } = await supabase
       .from('students')
       .select('*')
       .eq('id', studentId)
       .single()
 
-    if (!student) {
+    if (!student || studentError) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 })
     }
 
-    // Get results with subject names
+    // 3. Get results with subject names
     const { data: results } = await supabase
       .from('results')
       .select('*, subjects(name)')
       .eq('student_id', studentId)
       .gt('score', 0)
 
-    // Get class info
+    // 4. Get class info
     const { data: enrollment } = await supabase
       .from('enrollments')
       .select('*, classes(name)')
       .eq('student_id', studentId)
-      .single()
+      .maybeSingle() // Use maybeSingle to prevent errors if no enrollment exists
 
-    // Get attendance summary
+    // 5. Get attendance summary
     const { data: attendance } = await supabase
       .from('attendance')
       .select('status')
@@ -64,4 +71,3 @@ export async function GET(
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
-

@@ -196,10 +196,10 @@ export default function ProfilePage() {
                 <label className="form-label">Role</label>
                 <p className="text-gray-700">{getRoleLabel(userData.role)}</p>
               </div>
-              {userData.school_name && (
+{(userData as any).school_name && (
                 <div>
                   <label className="form-label">School</label>
-                  <p className="text-gray-700">{userData.school_name}</p>
+                  <p className="text-gray-700">{(userData as any).school_name}</p>
                 </div>
               )}
             </div>

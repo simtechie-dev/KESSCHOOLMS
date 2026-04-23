@@ -92,8 +92,8 @@ export default function GradesPage() {
           resultRecords[result.student_id] = result
           gradeRecords[result.student_id] = {
             student_id: result.student_id,
-            score: result.score,
-            remarks: result.remarks,
+            score: (result as any).score,
+            remarks: (result as any).remarks,
           }
         })
 

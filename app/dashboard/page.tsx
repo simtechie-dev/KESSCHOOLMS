@@ -24,8 +24,9 @@ export default function DashboardPage() {
     totalSchools: 0,
     totalStudents: 0,
     totalTeachers: 0,
+    totalUsers: 0,
     totalAttendanceToday: 0,
-  })
+  } as any)
   const [showSetup, setShowSetup] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -60,12 +61,13 @@ export default function DashboardPage() {
 
         const statsData = await statsResponse.json()
         console.log("Raw API data:", statsData)
-        setStats({
+        setStats(({
           totalSchools: statsData.totalSchools || 0,
           totalStudents: statsData.totalStudents || 0,
           totalTeachers: statsData.totalTeachers || 0,
+          totalUsers: 0,
           totalAttendanceToday: statsData.totalAttendanceToday || 0,
-        })
+        } as any))
 
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
@@ -145,19 +147,19 @@ export default function DashboardPage() {
 
             <StatCard
               title="Total Schools"
-              value={typeof stats.totalSchools === 'object' ? stats.totalSchools.count : (stats.totalSchools || 0)}
+              value={(stats.totalSchools as any)?.count || (stats.totalSchools || 0)}
               icon="🏫"
               color="blue"
             />
             <StatCard
               title="Total Students"
-              value={typeof stats.totalStudents === 'object' ? stats.totalStudents.count : (stats.totalStudents || 0)}
+              value={(stats.totalStudents as any)?.count || (stats.totalStudents || 0)}
               icon="👨‍🎓"
               color="green"
             />
             <StatCard
               title="Total Teachers"
-              value={typeof stats.totalTeachers === 'object' ? stats.totalTeachers.count : (stats.totalTeachers || 0)}
+              value={(stats.totalTeachers as any)?.count || (stats.totalTeachers || 0)}
               icon="👨‍🏫"
               color="purple"
             />
@@ -165,7 +167,7 @@ export default function DashboardPage() {
               title="Total Users"
               value={stats.totalUsers || 0}
               icon="👥"
-              color="indigo"
+              color="purple"
             />
 
           </>
@@ -176,13 +178,13 @@ export default function DashboardPage() {
 
             <StatCard
               title="Total Students"
-              value={typeof stats.totalStudents === 'object' ? stats.totalStudents.count : stats.totalStudents}
+              value={(stats.totalStudents as any)?.count || stats.totalStudents}
               icon="👨‍🎓"
               color="blue"
             />
             <StatCard
               title="Total Teachers"
-              value={typeof stats.totalTeachers === 'object' ? stats.totalTeachers.count : stats.totalTeachers}
+              value={(stats.totalTeachers as any)?.count || stats.totalTeachers}
               icon="👨‍🏫"
               color="green"
             />

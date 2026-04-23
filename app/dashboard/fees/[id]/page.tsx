@@ -30,15 +30,15 @@ export default function EditFeePage({ params }: { params: Promise<{ id: string }
 
   useEffect(() => {
     fetchFee()
-    fetchSchools()
+    //fetchSchools()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // We use feeId inside fetchFee which is stable
 
-  useEffect(() => {
-    if (formData.school_id) {
-      fetchClasses(formData.school_id)
-    }
-  }, [formData.school_id])
+  //useEffect(() => {
+    //if (formData.school_id) {
+     // fetchClasses(formData.school_id)
+   // }
+ // }, [formData.school_id])
 
   const fetchFee = async () => {
     try {

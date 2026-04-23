@@ -42,12 +42,12 @@ export default function PaymentsPage() {
   }, [selectedTerm, selectedYear, selectedStatus])
 
   const filteredPayments = payments.filter((payment) => {
-    const studentName = payment.students
-      ? `${payment.students.first_name} ${payment.students.last_name}`
+    const studentName = (payment as any).students
+      ? `${(payment as any).students.first_name} ${(payment as any).students.last_name}`
       : ''
     return (
       studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.students?.registration_number?.toLowerCase().includes(searchTerm.toLowerCase())
+      (payment as any).students?.registration_number?.toLowerCase().includes(searchTerm.toLowerCase())
     )
   })
 
@@ -143,8 +143,8 @@ export default function PaymentsPage() {
             {filteredPayments.map((payment) => (
               <tr key={payment.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 font-medium text-gray-800">
-                  {payment.students
-                    ? `${payment.students.first_name} ${payment.students.last_name}`
+                  {(payment as any).students
+                    ? `${(payment as any).students.first_name} ${(payment as any).students.last_name}`
                     : 'N/A'}
                 </td>
                 <td className="px-6 py-4 text-gray-600">{formatCurrency(payment.amount)}</td>

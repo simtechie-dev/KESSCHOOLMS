@@ -26,7 +26,7 @@ export default function NewClassPage() {
     if (user?.role === "state_admin") {
       fetchSchools()
     } else if (user?.school_id && user.role === "school_admin") {
-      setFormData(prev => ({ ...prev, school_id: user.school_id }))
+      setFormData(prev => ({ ...prev, school_id: user.school_id || '' }))
     }
   }, [user])
 
@@ -108,16 +108,16 @@ export default function NewClassPage() {
           </div>
         ) : (
           <>
-            {user?.role === "school_admin" && user.schools && (
-              <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
-                <p className="text-sm text-blue-800">
-                  <strong>School:</strong> {user.schools.name}{" "}
-                  <span className="text-xs ml-2 px-2 py-1 bg-blue-100 rounded-full">
-                    Auto-assigned
-                  </span>
-                </p>
-              </div>
-            )}
+            {user?.role === "school_admin" && user.school_id && (
+  <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
+    <p className="text-sm text-blue-800">
+      <strong>School:</strong> Your assigned school{" "}
+      <span className="text-xs ml-2 px-2 py-1 bg-blue-100 rounded-full">
+        Auto-assigned
+      </span>
+    </p>
+  </div>
+)}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {user?.role === "state_admin" && (

@@ -29,6 +29,7 @@ interface AnalyticsData {
   schoolsByLGA: any[]
   studentGradeDistribution: any[]
   attendanceTrend: any[]
+  topSchools: any[]
 }
 
 export default function AnalyticsPage() {

@@ -11,7 +11,6 @@ export default function ProfilePage() {
   const { isLoaded, isSignedIn, userId } = useAuth()
   if (!isLoaded) return null
   if (!isSignedIn) redirect('/sign-in')
-
   const [userData, setUserData] = useState<User | null>(null)
   const [school, setSchool] = useState<School | null>(null)
   const [loading, setLoading] = useState(true)
